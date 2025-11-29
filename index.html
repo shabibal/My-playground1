@@ -1,0 +1,4249 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام ملعبي - المنصة المتكاملة لجميع الرياضات</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+/* --- Global Variables & Resets --- */
+:root {
+--primary-color: #3498db;
+--secondary-color: #2ecc71;
+--accent-color: #e74c3c;
+--light-bg: #f0f2f5;
+--card-bg: #ffffff;
+--text-primary: #2c3e50;
+--text-secondary: #7f8c8d;
+--shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+--border-radius: 12px;
+--btn-padding-y: 14px;
+--btn-padding-x: 28px;
+--btn-font-size: 16px;
+--btn-line-height: 1.5;
+--btn-border-width: 2px;
+--btn-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+* { box-sizing: border-box; }
+body {
+font-family: 'Tajawal', 'Segoe UI', sans-serif;
+background-color: var(--light-bg);
+margin: 0;
+padding: 0;
+color: var(--text-primary);
+line-height: 1.6;
+}
+.hidden { display: none !important; }
+.message {
+padding: 15px;
+margin: 20px 0;
+border-radius: 8px;
+font-weight: 500;
+text-align: center;
+}
+.message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.text-center { text-align: center; }
+.mt-20 { margin-top: 20px; }
+
+/* --- Location & Map Styles --- */
+.location-section {
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+color: white;
+padding: 20px;
+border-radius: var(--border-radius);
+margin-bottom: 20px;
+text-align: center;
+}
+
+.location-header {
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 10px;
+margin-bottom: 15px;
+}
+
+.location-header h3 {
+margin: 0;
+font-size: 1.3em;
+}
+
+#mapContainer {
+height: 400px;
+border-radius: var(--border-radius);
+overflow: hidden;
+margin: 20px 0;
+box-shadow: var(--shadow);
+position: relative;
+}
+
+.map-controls {
+position: absolute;
+top: 10px;
+left: 10px;
+z-index: 1000;
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+
+.map-control-btn {
+background: white;
+border: none;
+border-radius: 8px;
+padding: 10px;
+cursor: pointer;
+box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+transition: var(--btn-transition);
+width: 40px;
+height: 40px;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+
+.map-control-btn:hover {
+background: var(--primary-color);
+color: white;
+transform: scale(1.1);
+}
+
+.location-filters {
+background: var(--card-bg);
+padding: 20px;
+border-radius: var(--border-radius);
+margin-bottom: 20px;
+box-shadow: var(--shadow);
+}
+
+.distance-filter {
+display: flex;
+align-items: center;
+gap: 15px;
+margin-bottom: 15px;
+}
+
+.distance-slider {
+flex: 1;
+-webkit-appearance: none;
+height: 6px;
+border-radius: 3px;
+background: #ddd;
+outline: none;
+}
+
+.distance-slider::-webkit-slider-thumb {
+-webkit-appearance: none;
+appearance: none;
+width: 20px;
+height: 20px;
+border-radius: 50%;
+background: var(--primary-color);
+cursor: pointer;
+}
+
+.distance-value {
+min-width: 80px;
+text-align: center;
+font-weight: bold;
+color: var(--primary-color);
+}
+
+.location-badge {
+display: inline-flex;
+align-items: center;
+gap: 5px;
+background: rgba(52, 152, 219, 0.1);
+color: var(--primary-color);
+padding: 5px 10px;
+border-radius: 20px;
+font-size: 0.9em;
+margin: 5px;
+}
+
+.venue-location-info {
+display: flex;
+align-items: center;
+gap: 10px;
+margin: 10px 0;
+}
+
+.distance-info {
+display: flex;
+align-items: center;
+gap: 5px;
+color: var(--secondary-color);
+font-weight: 500;
+}
+
+.directions-btn {
+background: var(--secondary-color);
+color: white;
+border: none;
+padding: 8px 15px;
+border-radius: 20px;
+cursor: pointer;
+transition: var(--btn-transition);
+display: inline-flex;
+align-items: center;
+gap: 5px;
+}
+
+.directions-btn:hover {
+background: #27ae60;
+transform: translateY(-2px);
+}
+
+.nearby-venues {
+margin-top: 20px;
+}
+
+.nearby-title {
+display: flex;
+align-items: center;
+gap: 10px;
+margin-bottom: 15px;
+color: var(--primary-color);
+}
+
+.nearby-list {
+display: grid;
+gap: 10px;
+}
+
+.nearby-item {
+background: var(--card-bg);
+padding: 15px;
+border-radius: var(--border-radius);
+display: flex;
+justify-content: space-between;
+align-items: center;
+box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+transition: var(--btn-transition);
+cursor: pointer;
+}
+
+.nearby-item:hover {
+transform: translateX(-5px);
+box-shadow: var(--shadow);
+}
+
+.nearby-venue-info {
+flex: 1;
+}
+
+.nearby-venue-name {
+font-weight: bold;
+color: var(--text-primary);
+}
+
+.nearby-venue-distance {
+color: var(--secondary-color);
+font-size: 0.9em;
+}
+
+.nearby-venue-rating {
+color: #ffc107;
+}
+
+/* --- Enhanced Button Styles --- */
+.btn {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+padding: var(--btn-padding-y) var(--btn-padding-x);
+font-size: var(--btn-font-size);
+font-weight: 600;
+line-height: var(--btn-line-height);
+border: var(--btn-border-width) solid transparent;
+border-radius: var(--border-radius);
+cursor: pointer;
+text-decoration: none;
+transition: var(--btn-transition);
+user-select: none;
+white-space: nowrap;
+position: relative;
+overflow: hidden;
+min-height: 48px;
+min-width: 120px;
+}
+
+.btn:focus {
+outline: none;
+box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+}
+
+.btn:active {
+transform: translateY(1px);
+}
+
+.btn:disabled {
+opacity: 0.6;
+cursor: not-allowed;
+transform: none !important;
+}
+
+.btn-primary {
+background-color: var(--primary-color);
+color: white;
+border-color: var(--primary-color);
+box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+background-color: #2980b9;
+border-color: #2980b9;
+box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+transform: translateY(-2px);
+}
+
+.btn-secondary {
+background-color: transparent;
+color: var(--primary-color);
+border-color: var(--primary-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+background-color: var(--primary-color);
+color: white;
+box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+transform: translateY(-2px);
+}
+
+.btn-success {
+background-color: var(--secondary-color);
+color: white;
+border-color: var(--secondary-color);
+box-shadow: 0 2px 4px rgba(46, 204, 113, 0.2);
+}
+
+.btn-success:hover:not(:disabled) {
+background-color: #27ae60;
+border-color: #27ae60;
+box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+transform: translateY(-2px);
+}
+
+.btn-danger {
+background-color: var(--accent-color);
+color: white;
+border-color: var(--accent-color);
+box-shadow: 0 2px 4px rgba(231, 76, 60, 0.2);
+}
+
+.btn-danger:hover:not(:disabled) {
+background-color: #c0392b;
+border-color: #c0392b;
+box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+transform: translateY(-2px);
+}
+
+.btn-sm {
+--btn-padding-y: 8px;
+--btn-padding-x: 16px;
+--btn-font-size: 14px;
+min-height: 36px;
+min-width: 100px;
+}
+
+.btn-lg {
+--btn-padding-y: 18px;
+--btn-padding-x: 36px;
+--btn-font-size: 18px;
+min-height: 56px;
+min-width: 160px;
+}
+
+.btn-group {
+display: flex;
+gap: 10px;
+flex-wrap: wrap;
+justify-content: center;
+margin: 20px 0;
+}
+
+.btn-group .btn {
+flex: 1;
+min-width: auto;
+}
+
+/* --- Enhanced List Styles --- */
+ul, ol {
+padding-right: 20px;
+margin: 15px 0;
+}
+
+ul li, ol li {
+margin-bottom: 10px;
+position: relative;
+padding-right: 10px;
+line-height: 1.5;
+}
+
+.sidebar ul li::before {
+content: "•";
+color: var(--primary-color);
+font-weight: bold;
+display: inline-block;
+width: 1em;
+margin-left: 0.5em;
+position: absolute;
+right: -5px;
+}
+
+.nav-links {
+display: flex;
+list-style: none;
+padding: 0;
+margin: 0;
+}
+
+.nav-links li {
+margin: 0 10px;
+}
+
+.sports-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+gap: 25px;
+margin-top: 30px;
+list-style: none;
+padding: 0;
+}
+
+.sports-grid li {
+background: var(--card-bg);
+border-radius: var(--border-radius);
+overflow: hidden;
+box-shadow: var(--shadow);
+text-align: center;
+padding: 30px 20px;
+transition: transform 0.3s ease, box-shadow 0.3s ease;
+cursor: pointer;
+}
+
+.sports-grid li:hover {
+transform: translateY(-10px);
+box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+}
+
+.venues-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+gap: 25px;
+margin-top: 30px;
+list-style: none;
+padding: 0;
+}
+
+.venues-grid li {
+background: var(--card-bg);
+border-radius: var(--border-radius);
+overflow: hidden;
+box-shadow: var(--shadow);
+text-align: right;
+transition: transform 0.3s ease, box-shadow 0.3s ease;
+cursor: pointer;
+}
+
+.venues-grid li:hover {
+transform: translateY(-10px);
+box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+}
+
+/* --- Header & Navigation --- */
+.main-header {
+background-color: var(--card-bg);
+box-shadow: var(--shadow);
+padding: 10px 20px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+position: sticky;
+top: 0;
+z-index: 1000;
+}
+.logo { font-size: 1.5em; font-weight: 700; color: var(--primary-color); }
+.nav-links a { 
+display: inline-flex;
+align-items: center;
+gap: 6px;
+margin: 0 10px; 
+text-decoration: none; 
+color: var(--text-primary); 
+font-weight: 500; 
+transition: var(--btn-transition);
+padding: 8px 12px;
+border-radius: 8px;
+}
+.nav-links a:hover { 
+color: var(--primary-color);
+background-color: rgba(52, 152, 219, 0.1);
+}
+.user-menu { display: flex; align-items: center; gap: 15px; }
+.notification-bell { 
+position: relative; 
+cursor: pointer; 
+font-size: 1.2em; 
+color: var(--text-secondary);
+padding: 8px;
+border-radius: 50%;
+transition: var(--btn-transition);
+}
+.notification-bell:hover {
+background-color: rgba(52, 152, 219, 0.1);
+color: var(--primary-color);
+}
+.notification-badge { position: absolute; top: -5px; left: -8px; background-color: var(--accent-color); color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 0.7em; font-weight: bold; }
+.notification-dropdown { position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: var(--shadow); width: 300px; max-height: 400px; overflow-y: auto; display: none; z-index: 1001; }
+.notification-dropdown.show { display: block; }
+.notification-item { 
+padding: 12px; 
+border-bottom: 1px solid #eee; 
+text-align: right; 
+font-size: 0.9em; 
+cursor: pointer;
+transition: var(--btn-transition);
+}
+.notification-item:hover {
+background-color: var(--light-bg);
+}
+
+/* --- Main Menu Page --- */
+#mainMenuPage { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: calc(100vh - 60px); text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }
+#mainMenuPage h1 { font-size: 3.5em; margin-bottom: 10px; }
+#mainMenuPage p { font-size: 1.2em; margin-bottom: 40px; }
+.menu-buttons { 
+display: flex; 
+gap: 20px; 
+flex-wrap: wrap; 
+justify-content: center; 
+list-style: none; 
+padding: 0;
+width: 100%;
+max-width: 600px;
+}
+.menu-button { 
+background: rgba(255, 255, 255, 0.15); 
+backdrop-filter: blur(10px); 
+border: 2px solid rgba(255, 255, 255, 0.3); 
+color: white; 
+padding: 20px 40px; 
+border-radius: var(--border-radius); 
+font-size: 1.2em; 
+cursor: pointer; 
+transition: var(--btn-transition);
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 12px;
+min-height: 60px;
+flex: 1;
+min-width: 200px;
+}
+.menu-button:hover { 
+background: rgba(255, 255, 255, 0.3); 
+transform: translateY(-5px);
+box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+.menu-button:active {
+transform: translateY(-2px);
+}
+
+/* --- Sports Selection Page --- */
+#sportsSelectionPage .container { padding: 20px; }
+#sportsSelectionPage h2 { margin-bottom: 30px; color: var(--primary-color); }
+.sport-card { 
+background: var(--card-bg); 
+border-radius: var(--border-radius); 
+overflow: hidden; 
+box-shadow: var(--shadow); 
+text-align: center; 
+padding: 30px 20px; 
+transition: var(--btn-transition); 
+cursor: pointer;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 15px;
+}
+.sport-card:hover { 
+transform: translateY(-10px); 
+box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+}
+.sport-icon { font-size: 4em; color: var(--primary-color); }
+.sport-card h3 { margin: 0; color: var(--primary-color); }
+.sport-card p { margin: 0; color: var(--text-secondary); }
+
+/* --- Container & Forms --- */
+.container { max-width: 900px; margin: 30px auto; padding: 40px; background: var(--card-bg); border-radius: var(--border-radius); box-shadow: var(--shadow); text-align: center; }
+.container h2 { margin-bottom: 30px; color: var(--primary-color); }
+.form-group { margin-bottom: 20px; text-align: right; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+.form-group input, .form-group select, .form-group textarea { 
+width: 100%; 
+padding: 12px; 
+border: 1px solid #ddd; 
+border-radius: 8px; 
+font-size: 16px;
+transition: var(--btn-transition);
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { 
+border-color: var(--primary-color); 
+outline: none;
+box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* --- Cards & Grids --- */
+.venue-card { 
+background: var(--card-bg); 
+border-radius: var(--border-radius); 
+overflow: hidden; 
+box-shadow: var(--shadow); 
+text-align: right; 
+transition: var(--btn-transition); 
+cursor: pointer;
+display: flex;
+flex-direction: column;
+}
+.venue-card:hover { 
+transform: translateY(-10px); 
+box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+}
+.venue-image-placeholder { 
+height: 180px; 
+background-color: #e9ecef; 
+display: flex; 
+align-items: center; 
+justify-content: center; 
+color: #6c757d; 
+font-size: 3em;
+flex-shrink: 0;
+}
+.venue-card-body { 
+padding: 20px; 
+flex-grow: 1;
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+.venue-card-body h3 { margin: 0; color: var(--primary-color); }
+.venue-card-body p { margin: 0; color: var(--text-secondary); display: flex; align-items: center; }
+.venue-card-body i { margin-left: 10px; width: 20px; text-align: center; color: var(--primary-color); }
+
+/* --- Booking & Details --- */
+.booking-info { background-color: #eef7ff; border: 1px solid #bde0ff; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: right; }
+.time-slots-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 20px; }
+.time-slot { 
+padding: 15px; 
+border: 2px solid var(--primary-color); 
+border-radius: 8px; 
+text-align: center; 
+cursor: pointer; 
+transition: var(--btn-transition);
+min-height: 80px;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+gap: 5px;
+}
+.time-slot.available { 
+background-color: var(--card-bg); 
+color: var(--primary-color);
+}
+.time-slot.available:hover { 
+background-color: var(--primary-color); 
+color: white;
+transform: translateY(-2px);
+box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+.time-slot.booked { 
+background-color: #f8d7da; 
+color: #721c24; 
+border-color: #f5c6cb; 
+cursor: not-allowed;
+opacity: 0.7;
+}
+.booking-list-item { background-color: var(--light-bg); padding: 15px; border-radius: 8px; margin-bottom: 10px; text-align: right; border-right: 4px solid var(--secondary-color); }
+.price-tag { font-weight: bold; color: var(--secondary-color); font-size: 1.2em; }
+
+/* --- Dashboard Stats --- */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; list-style: none; padding: 0; }
+.stat-card { 
+background: linear-gradient(135deg, var(--primary-color), #5dade2); 
+color: white; 
+padding: 20px; 
+border-radius: var(--border-radius); 
+text-align: center;
+transition: var(--btn-transition);
+}
+.stat-card:hover {
+transform: translateY(-5px);
+box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+}
+.stat-card h3 { font-size: 2em; margin: 0; }
+.stat-card p { margin: 5px 0 0 0; }
+
+/* --- Tournaments --- */
+.tournament-card { 
+border: 1px solid #ddd; 
+padding: 20px; 
+border-radius: var(--border-radius); 
+margin-bottom: 15px; 
+text-align: right;
+transition: var(--btn-transition);
+}
+.tournament-card:hover {
+box-shadow: var(--shadow);
+transform: translateY(-2px);
+}
+.tournament-card h4 { color: var(--primary-color); margin-top: 0; }
+
+/* --- Ratings --- */
+.rating { direction: ltr; display: inline-block; font-size: 1.5em; }
+.rating .star { 
+color: #ddd; 
+cursor: pointer;
+transition: var(--btn-transition);
+}
+.rating .star:hover {
+color: #ffc107;
+transform: scale(1.1);
+}
+.rating .star.filled { color: #ffc107; }
+.review-item { text-align: right; border-bottom: 1px solid #eee; padding: 15px 0; }
+.review-item:last-child { border-bottom: none; }
+.review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+
+/* --- Filters --- */
+.filters-container { 
+background-color: #f8f9fa; 
+padding: 20px; 
+border-radius: var(--border-radius); 
+margin-bottom: 30px; 
+text-align: right; 
+display: flex; 
+gap: 15px; 
+flex-wrap: wrap; 
+align-items: end;
+}
+.filters-container .form-group { margin-bottom: 0; flex-grow: 1; }
+
+/* --- Admin & Owner Dashboard Styles --- */
+.dashboard-container { display: flex; max-width: 1400px; margin: 20px auto; gap: 20px; padding: 0 20px; }
+.sidebar { 
+flex: 0 0 250px; 
+background: var(--card-bg); 
+padding: 20px; 
+border-radius: var(--border-radius); 
+box-shadow: var(--shadow); 
+height: fit-content;
+}
+.sidebar h3 { margin-top: 0; color: var(--primary-color); }
+.sidebar ul { list-style: none; padding: 0; }
+.sidebar li { margin-bottom: 10px; }
+.sidebar a { 
+display: flex; 
+align-items: center; 
+gap: 10px;
+padding: 12px 15px; 
+text-decoration: none; 
+color: var(--text-primary); 
+border-radius: 8px; 
+transition: var(--btn-transition);
+}
+.sidebar a:hover, .sidebar a.active { 
+background-color: var(--primary-color); 
+color: white;
+transform: translateX(-5px);
+}
+.content { 
+flex-grow: 1; 
+background: var(--card-bg); 
+padding: 30px; 
+border-radius: var(--border-radius); 
+box-shadow: var(--shadow); 
+text-align: right; 
+}
+.admin-table { 
+width: 100%; 
+border-collapse: collapse; 
+margin-top: 20px; 
+}
+.admin-table th, .admin-table td { 
+padding: 12px; 
+text-align: right; 
+border-bottom: 1px solid #ddd; 
+}
+.admin-table th { 
+background-color: var(--light-bg); 
+font-weight: 700; 
+}
+.admin-table .actions { 
+display: flex; 
+gap: 8px; 
+justify-content: center; 
+flex-wrap: wrap; 
+}
+.admin-table .actions button { 
+padding: 6px 12px; 
+font-size: 14px;
+min-width: auto;
+}
+
+/* --- Payment Methods --- */
+.payment-methods { 
+display: flex; 
+justify-content: center; 
+margin-bottom: 30px; 
+list-style: none; 
+padding: 0;
+gap: 15px;
+}
+.payment-method { 
+flex: 1; 
+max-width: 200px; 
+padding: 20px; 
+border: 2px solid #ddd; 
+border-radius: var(--border-radius); 
+cursor: pointer; 
+text-align: center; 
+transition: var(--btn-transition);
+}
+.payment-method:hover {
+border-color: var(--primary-color);
+transform: translateY(-5px);
+box-shadow: var(--shadow);
+}
+.payment-method.active { 
+border-color: var(--primary-color); 
+background-color: #f0f8ff;
+}
+.payment-method i { 
+font-size: 2em; 
+margin-bottom: 10px; 
+display: block; 
+color: var(--primary-color); 
+}
+.payment-form-container { margin-top: 20px; }
+
+/* --- Chat Page Styles --- */
+#chatPage, #adminChatPage { padding: 20px; }
+.chat-container { 
+max-width: 700px; 
+margin: 0 auto; 
+background: var(--card-bg); 
+border-radius: var(--border-radius); 
+box-shadow: var(--shadow); 
+display: flex; 
+flex-direction: column; 
+height: 70vh; 
+}
+.chat-header { 
+background-color: var(--primary-color); 
+color: white; 
+padding: 15px 20px; 
+border-top-left-radius: var(--border-radius); 
+border-top-right-radius: var(--border-radius); 
+font-size: 1.2em; 
+font-weight: bold; 
+display: flex; 
+justify-content: space-between; 
+align-items: center; 
+}
+.chat-messages { 
+flex-grow: 1; 
+padding: 20px; 
+overflow-y: auto; 
+display: flex; 
+flex-direction: column; 
+gap: 15px; 
+}
+.message-bubble { 
+max-width: 75%; 
+padding: 12px 16px; 
+border-radius: 18px; 
+line-height: 1.4; 
+position: relative;
+transition: var(--btn-transition);
+}
+.message-bubble:hover {
+transform: scale(1.02);
+}
+.message-bubble.user { 
+background-color: var(--primary-color); 
+color: white; 
+align-self: flex-end; 
+border-bottom-right-radius: 5px; 
+}
+.message-bubble.admin { 
+background-color: #e9ecef; 
+color: var(--text-primary); 
+align-self: flex-start; 
+border-bottom-left-radius: 5px; 
+}
+.message-bubble img { 
+max-width: 100%; 
+border-radius: var(--border-radius); 
+margin-top: 5px; 
+}
+.chat-input-container { 
+display: flex; 
+padding: 15px; 
+border-top: 1px solid #ddd; 
+align-items: center; 
+gap: 10px; 
+}
+.chat-input-container input[type="text"] { 
+flex-grow: 1; 
+border: 1px solid #ccc; 
+border-radius: 20px; 
+padding: 10px 15px;
+transition: var(--btn-transition);
+}
+.chat-input-container input[type="text"]:focus {
+border-color: var(--primary-color);
+box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+.chat-input-container input[type="file"] { display: none; }
+.chat-input-container .btn { 
+border-radius: 50%; 
+width: 45px; 
+height: 45px; 
+padding: 0; 
+display: flex; 
+align-items: center; 
+justify-content: center; 
+font-size: 1.2em;
+min-width: auto;
+}
+
+/* --- Dynamic Form Fields --- */
+#venueSpecificFields { margin-top: 20px; }
+.checkbox-group { 
+display: flex; 
+flex-wrap: wrap; 
+gap: 15px; 
+text-align: right; 
+list-style: none; 
+padding: 0;
+}
+.checkbox-group label { 
+display: flex; 
+align-items: center; 
+gap: 8px; 
+font-weight: normal;
+padding: 8px 12px;
+border-radius: 8px;
+transition: var(--btn-transition);
+cursor: pointer;
+}
+.checkbox-group label:hover {
+background-color: rgba(52, 152, 219, 0.1);
+}
+.checkbox-group input[type="checkbox"] {
+width: 18px;
+height: 18px;
+cursor: pointer;
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+.container { padding: 20px; margin: 20px auto; }
+.main-header { flex-direction: column; gap: 10px; }
+.nav-links { display: none; }
+.filters-container { flex-direction: column; align-items: stretch; }
+.filters-container .form-group { width: 100%; }
+.stats-grid { grid-template-columns: 1fr; }
+.dashboard-container { flex-direction: column; }
+.sidebar { flex: none; width: 100%; }
+.payment-methods { flex-direction: column; }
+.payment-method { margin: 10px 0; }
+.admin-table .actions { flex-direction: column; }
+.menu-buttons {
+flex-direction: column;
+max-width: 300px;
+}
+.menu-button {
+min-width: auto;
+}
+.btn {
+--btn-padding-x: 20px;
+--btn-padding-y: 12px;
+}
+#mapContainer {
+height: 300px;
+}
+.map-controls {
+top: 5px;
+left: 5px;
+}
+.map-control-btn {
+width: 35px;
+height: 35px;
+}
+}
+</style>
+</head>
+<body>
+
+<!-- ================ Header ================ -->
+<header class="main-header hidden" id="appHeader">
+<div class="logo">ملعبي</div>
+<nav class="nav-links">
+<a href="#" onclick="showPage('sportsSelectionPage')"><i class="fas fa-running"></i> الرياضات</a>
+<a href="#" onclick="showPage('tournamentsPage')"><i class="fas fa-trophy"></i> البطولات</a>
+</nav>
+<div class="user-menu">
+<div class="notification-bell" onclick="toggleNotifications()">
+<i class="fas fa-bell"></i>
+<span class="notification-badge" id="notificationBadge">3</span>
+<div class="notification-dropdown" id="notificationDropdown"></div>
+</div>
+<span id="headerUserName">ضيف</span>
+<button class="btn btn-secondary btn-sm" onclick="showPage('mainMenuPage')">
+<i class="fas fa-home"></i> القائمة الرئيسية
+</button>
+</div>
+</header>
+
+<!-- ================ 1. Main Menu ================ -->
+<div id="mainMenuPage">
+<h1>مرحباً بك في منصة ملعبي</h1>
+<p>منصتك الشاملة لحجز جميع المنشآت الرياضية</p>
+<ul class="menu-buttons">
+<li class="menu-button" onclick="showPage('sportsSelectionPage')">
+<i class="fas fa-running"></i> 
+<span>استكشف الرياضات</span>
+</li>
+<li class="menu-button" onclick="showPage('ownerLoginPage')">
+<i class="fas fa-store"></i> 
+<span>أنا صاحب منشأة</span>
+</li>
+<li class="menu-button" onclick="showPage('adminLoginPage')">
+<i class="fas fa-cogs"></i> 
+<span>صفحة الإدارة</span>
+</li>
+</ul>
+</div>
+
+<!-- ================ 2. Sports Selection Page ================ -->
+<div id="sportsSelectionPage" class="container hidden">
+<h2><i class="fas fa-running"></i> اختر الرياضة التي تريد ممارستها</h2>
+<ul class="sports-grid">
+<li class="sport-card" onclick="selectSport('football')">
+<div class="sport-icon"><i class="fas fa-futbol"></i></div>
+<h3>كرة القدم</h3>
+<p>احجز ملاعب كرة القدم</p>
+</li>
+<li class="sport-card" onclick="selectSport('volleyball')">
+<div class="sport-icon"><i class="fas fa-volleyball-ball"></i></div>
+<h3>كرة الطائرة</h3>
+<p>احزر ملاعب كرة الطائرة</p>
+</li>
+<li class="sport-card" onclick="selectSport('basketball')">
+<div class="sport-icon"><i class="fas fa-basketball-ball"></i></div>
+<h3>كرة السلة</h3>
+<p>احجز ملاعب كرة السلة</p>
+</li>
+<li class="sport-card" onclick="selectSport('tennis')">
+<div class="sport-icon"><i class="fas fa-table-tennis"></i></div>
+<h3>تنس الطاولة</h3>
+<p>احزر ملاعب تنس الطاولة</p>
+</li>
+<li class="sport-card" onclick="selectSport('swimming')">
+<div class="sport-icon"><i class="fas fa-swimmer"></i></div>
+<h3>السباحة</h3>
+<p>احجز مسابح</p>
+</li>
+<li class="sport-card" onclick="selectSport('esports')">
+<div class="sport-icon"><i class="fas fa-gamepad"></i></div>
+<h3>الرياضات الإلكترونية</h3>
+<p>احزر مقاعد إلكترونية</p>
+</li>
+</ul>
+<div class="btn-group">
+<button class="btn btn-secondary btn-lg" onclick="showPage('mainMenuPage')">
+<i class="fas fa-arrow-right"></i> العودة للقائمة الرئيسية
+</button>
+</div>
+</div>
+
+<!-- ================ Player Interface (Venues List) ================ -->
+<div id="playerInterface" class="container hidden">
+<h2 id="playerInterfaceTitle"><i class="fas fa-futbol"></i> اكتشف المنشآت الرياضية</h2>
+
+<!-- Location Section -->
+<div class="location-section">
+<div class="location-header">
+<i class="fas fa-map-marked-alt"></i>
+<h3>اكتشف المنشآت القريبة منك</h3>
+</div>
+<button class="btn btn-primary" onclick="getUserLocation()">
+<i class="fas fa-location-arrow"></i> تحديد موقعي الحالي
+</button>
+</div>
+
+<!-- Map Container -->
+<div id="mapContainer">
+<div class="map-controls">
+<button class="map-control-btn" onclick="centerMapOnUser()" title="موقعي">
+<i class="fas fa-crosshairs"></i>
+</button>
+<button class="map-control-btn" onclick="toggleMapStyle()" title="تغيير الخريطة">
+<i class="fas fa-layer-group"></i>
+</button>
+<button class="map-control-btn" onclick="toggleFullscreen()" title="ملء الشاشة">
+<i class="fas fa-expand"></i>
+</button>
+</div>
+</div>
+
+<!-- Location Filters -->
+<div class="location-filters">
+<div class="distance-filter">
+<label>البحث ضمن مسافة:</label>
+<input type="range" class="distance-slider" id="distanceSlider" min="1" max="50" value="10" oninput="updateDistanceFilter(this.value)">
+<span class="distance-value" id="distanceValue">10 كم</span>
+</div>
+<div class="btn-group">
+<button class="btn btn-primary" onclick="filterByDistance()">
+<i class="fas fa-filter"></i> تطبيق المسافة
+</button>
+<button class="btn btn-secondary" onclick="clearLocationFilter()">
+<i class="fas fa-times"></i> مسح التصفية
+</button>
+</div>
+</div>
+
+<div class="filters-container">
+<div class="form-group"><label for="citySearchInput">المدينة</label><input type="text" id="citySearchInput" placeholder="مثال: الرياض"></div>
+<div class="form-group"><label>نوع السطح</label><select id="filterSurface"><option value="">الكل</option></select></div>
+<div class="form-group"><label>حجم المنشأة</label><select id="filterSize"><option value="">الكل</option></select></div>
+<div class="form-group"><label>إضاءة ليلية</label><select id="filterLights"><option value="">الكل</option><option value="true">متوفرة</option><option value="false">غير متوفرة</option></select></div>
+<div class="btn-group">
+<button type="button" class="btn btn-primary" onclick="applyFilters()">
+<i class="fas fa-search"></i> بحث
+</button>
+<button type="button" class="btn btn-secondary" onclick="displayVenuesForPlayer()">
+<i class="fas fa-list"></i> عرض الكل
+</button>
+</div>
+</div>
+
+<!-- Nearby Venues Section -->
+<div class="nearby-venues" id="nearbyVenues">
+<div class="nearby-title">
+<i class="fas fa-map-pin"></i>
+<h3>المنشآت القريبة</h3>
+</div>
+<div class="nearby-list" id="nearbyList">
+<!-- Nearby venues will be populated here -->
+</div>
+</div>
+
+<ul id="venuesListForPlayer" class="venues-grid"></ul>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="showPage('sportsSelectionPage')">
+<i class="fas fa-arrow-right"></i> العودة لاختيار الرياضة
+</button>
+</div>
+</div>
+
+<!-- ================ Venue Detail & Booking ================ -->
+<div id="venueDetailPage" class="container hidden">
+<button class="btn btn-secondary" onclick="showPage('playerInterface')">
+<i class="fas fa-arrow-right"></i> العودة لقائمة المنشآت
+</button>
+<h2 id="detailVenueName"></h2>
+
+<!-- Enhanced Location Info -->
+<div class="venue-location-info">
+<div class="location-badge">
+<i class="fas fa-map-marker-alt"></i>
+<span id="venueLocationText"></span>
+</div>
+<div class="distance-info" id="venueDistance">
+<i class="fas fa-route"></i>
+<span>جاري حساب المسافة...</span>
+</div>
+<button class="directions-btn" onclick="getDirections()">
+<i class="fas fa-directions"></i>
+الحصول على الاتجاهات
+</button>
+</div>
+
+<div id="detailVenueInfo" class="booking-info"></div>
+
+<!-- Enhanced Map -->
+<div id="venueMap" style="margin: 20px 0; border-radius: 8px; overflow: hidden; height: 300px;"></div>
+
+<h3>احجز وقتك</h3>
+<div class="form-group"><label for="bookingDate">اختر يوم الحجز</label><input type="date" id="bookingDate" onchange="generateTimeSlots()"></div>
+<div class="form-group"><label for="discountCodeInput">كود خصم (اختياري)</label><input type="text" id="discountCodeInput" placeholder="أدخل الكود هنا"></div>
+<div id="timeSlotsContainer" class="time-slots-container"></div>
+<div id="bookingMessage" class="message hidden"></div>
+<h3>التقييمات والمراجعات</h3>
+<div id="reviewsContainer"></div>
+</div>
+
+<!-- ================ Payment Page ================ -->
+<div id="paymentPage" class="container hidden">
+<h2><i class="fas fa-credit-card"></i> إتمام الدفع</h2>
+<div id="paymentSummary" class="booking-info"></div>
+<div class="payment-form-container">
+<div id="paypalForm">
+<p>سيتم توجيهك إلى صفحة PayPal الآمنة لإتمام الدفع. بعد الدفع، ارسل لنا صورة الإيصال عبر الدردشة لتأكيد حجزك.</p>
+<button class="btn btn-primary btn-lg" style="width: 100%; margin-top: 20px;" onclick="redirectToPayPal()">
+<i class="fab fa-paypal"></i> الدفع عبر PayPal
+</button>
+</div>
+</div>
+<div id="paymentMessage" class="message hidden"></div>
+</div>
+
+<!-- ================ Owner Login ================ -->
+<div id="ownerLoginPage" class="container hidden">
+<h2><i class="fas fa-store"></i> تسجيل دخول صاحب المنشأة</h2>
+<form id="ownerLoginForm">
+<div class="form-group"><label for="ownerLoginEmail">البريد الإلكتروني</label><input type="email" id="ownerLoginEmail" required></div>
+<div class="form-group"><label for="ownerLoginPassword">الرمز السري</label><input type="password" id="ownerLoginPassword" required></div>
+<div class="btn-group">
+<button type="submit" class="btn btn-primary">
+<i class="fas fa-sign-in-alt"></i> دخول
+</button>
+</div>
+</form>
+<div id="ownerLoginMessage" class="message hidden"></div>
+<p>ليس لديك حساب؟ <a href="#" onclick="showPage('ownerRegistrationPage')">إنشاء حساب جديد</a></p>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="showPage('mainMenuPage')">
+<i class="fas fa-home"></i> العودة للقائمة الرئيسية
+</button>
+</div>
+</div>
+
+<!-- ================ Owner Registration ================ -->
+<div id="ownerRegistrationPage" class="container hidden">
+<h2><i class="fas fa-user-plus"></i> إنشاء حساب جديد</h2>
+<form id="ownerRegistrationForm">
+<div class="form-group"><label for="ownerName">الاسم الكامل</label><input type="text" id="ownerName" required></div>
+<div class="form-group"><label for="ownerEmail">البريد الإلكتروني</label><input type="email" id="ownerEmail" required></div>
+<div class="form-group"><label for="ownerPassword">الرمز السري</label><input type="password" id="ownerPassword" required></div>
+<div class="form-group"><label for="ownerPhone">رقم الهاتف</label><input type="tel" id="ownerPhone" required></div>
+<div class="btn-group">
+<button type="submit" class="btn btn-primary">
+<i class="fas fa-user-plus"></i> إنشاء حساب
+</button>
+</div>
+</form>
+<div id="registrationMessage" class="message hidden"></div>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="showPage('ownerLoginPage')">
+<i class="fas fa-arrow-left"></i> العودة لتسجيل الدخول
+</button>
+</div>
+</div>
+
+<!-- ================ Owner Dashboard ================ -->
+<div id="ownerDashboard" class="hidden">
+<div class="dashboard-container">
+<aside class="owner-sidebar">
+<h3>لوحة تحكم صاحب المنشأة</h3>
+<ul>
+<li><a href="#" class="active" onclick="showOwnerSection('overview')"><i class="fas fa-chart-line"></i> الإحصائيات</a></li>
+<li><a href="#" onclick="showOwnerSection('venues')"><i class="fas fa-building"></i> المنشآت الخاصة بي</a></li>
+<li><a href="#" onclick="showOwnerSection('add-venue')"><i class="fas fa-plus-circle"></i> إضافة منشأة جديدة</a></li>
+<li><a href="#" onclick="showOwnerSection('bookings')"><i class="fas fa-calendar-check"></i> إدارة الحجوزات</a></li>
+<li><a href="#" onclick="showOwnerSection('tournaments')"><i class="fas fa-trophy"></i> إدارة البطولات</a></li>
+</ul>
+<button class="btn btn-danger" style="width: 100%; margin-top: 20px;" onclick="logout()">
+<i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+</button>
+</aside>
+<main class="owner-content" id="ownerContent">
+<!-- Content will be loaded here dynamically -->
+</main>
+</div>
+</div>
+
+<!-- ================ Admin Login ================ -->
+<div id="adminLoginPage" class="container hidden">
+<h2><i class="fas fa-cogs"></i> لوحة تحكم الإدارة</h2>
+<form id="adminLoginForm">
+<div class="form-group"><label for="adminEmail">البريد الإلكتروني</label><input type="email" id="adminEmail" required></div>
+<div class="form-group"><label for="adminPassword">الرمز السري</label><input type="password" id="adminPassword" required></div>
+<div class="btn-group">
+<button type="submit" class="btn btn-primary">
+<i class="fas fa-sign-in-alt"></i> دخول
+</button>
+</div>
+</form>
+<div id="loginMessage" class="message hidden"></div>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="showPage('mainMenuPage')">
+<i class="fas fa-home"></i> العودة للقائمة الرئيسية
+</button>
+</div>
+</div>
+
+<!-- ================ Admin Dashboard ================ -->
+<div id="adminDashboard" class="hidden">
+<div class="dashboard-container">
+<aside class="admin-sidebar">
+<h3>لوحة التحكم</h3>
+<ul>
+<li><a href="#" class="active" onclick="showAdminSection('overview')"><i class="fas fa-chart-line"></i> الإحصائيات</a></li>
+<li><a href="#" onclick="showAdminSection('approvals')"><i class="fas fa-user-check"></i> الموافقة على الحسابات</a></li>
+<li><a href="#" onclick="showAdminSection('users')"><i class="fas fa-users"></i> إدارة الحسابات</a></li>
+<li><a href="#" onclick="showAdminSection('venues')"><i class="fas fa-building"></i> إدارة المنشآت</a></li>
+<li><a href="#" onclick="showAdminSection('add-venue')"><i class="fas fa-plus-circle"></i> إضافة منشأة جديدة</a></li>
+<li><a href="#" onclick="showAdminSection('bookings')"><i class="fas fa-calendar-check"></i> إدارة الحجوزات</a></li>
+<li><a href="#" onclick="showAdminSection('tournaments')"><i class="fas fa-trophy"></i> إدارة البطولات</a></li>
+<li><a href="#" onclick="showAdminSection('discounts')"><i class="fas fa-tags"></i> إدارة الخصومات</a></li>
+</ul>
+<button class="btn btn-danger" style="width: 100%; margin-top: 20px;" onclick="logout()">
+<i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+</button>
+</aside>
+<main class="admin-content" id="adminContent">
+<!-- Content will be loaded here dynamically -->
+</main>
+</div>
+</div>
+
+<!-- ================ Chat Page (for Player) ================ -->
+<div id="chatPage" class="container hidden">
+<button class="btn btn-secondary" onclick="showPage('playerInterface')">
+<i class="fas fa-arrow-right"></i> العودة
+</button>
+<div class="chat-container">
+<div class="chat-header"><span>دردشة تأكيد الحجز</span><span id="chatStatus">في انتظار تأكيد الدفع</span></div>
+<div id="chatMessages" class="chat-messages"></div>
+<div class="chat-input-container">
+<input type="text" id="chatInput" placeholder="اكتب رسالتك...">
+<label for="imageUpload" class="btn btn-secondary btn-icon">
+<i class="fas fa-image"></i>
+</label>
+<input type="file" id="imageUpload" accept="image/*" onchange="sendImage(event)">
+<button class="btn btn-primary btn-icon" onclick="sendMessage()">
+<i class="fas fa-paper-plane"></i>
+</button>
+</div>
+</div>
+</div>
+
+<!-- ================ Admin Chat Page ================ -->
+<div id="adminChatPage" class="container hidden">
+<button class="btn btn-secondary" onclick="showAdminSection('bookings')">
+<i class="fas fa-arrow-right"></i> العودة للحجوزات
+</button>
+<div class="chat-container">
+<div class="chat-header"><span>دردشة تأكيد الحجز</span><span id="adminChatStatus">مراجعة الحجز</span></div>
+<div id="adminChatMessages" class="chat-messages"></div>
+<div class="chat-input-container">
+<input type="text" id="adminChatInput" placeholder="اكتب رسالتك...">
+<button class="btn btn-success" onclick="confirmBookingFromChat()">
+<i class="fas fa-check"></i> تأكيد الحجز
+</button>
+</div>
+</div>
+</div>
+
+<!-- ================ Tournaments Page ================ -->
+<div id="tournamentsPage" class="container hidden">
+<h2><i class="fas fa-trophy"></i> البطولات المتاحة</h2>
+<p class="text-center">لتسجيل البطولات، يجب عليك إنشاء حساب كصاحب منشأة.</p>
+<div id="tournamentsListContainer"></div>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="showPage('mainMenuPage')">
+<i class="fas fa-home"></i> العودة للقائمة الرئيسية
+</button>
+</div>
+</div>
+
+<!-- ================ Create Tournament Page ================ -->
+<div id="createTournamentPage" class="container hidden">
+<h2><i class="fas fa-plus-circle"></i> إنشاء بطولة جديدة</h2>
+<form id="createTournamentForm">
+<div class="form-group"><label>نوع الرياضة</label><select id="tournamentSport" onchange="populateVenueSelect()" required><option value="football">كرة القدم</option><option value="volleyball">كرة الطائرة</option><option value="basketball">كرة السلة</option><option value="tennis">تنس الطاولة</option><option value="swimming">السباحة</option><option value="esports">رياضات إلكترونية</option></select></div>
+<div class="form-group"><label for="tournamentName">اسم البطولة</label><input type="text" id="tournamentName" required></div>
+<div class="form-group"><label for="tournamentVenue">المنشأة</label><select id="tournamentVenue" required></select></div>
+<div class="form-group"><label for="tournamentDate">تاريخ البطولة</label><input type="date" id="tournamentDate" required></div>
+<div class="form-group"><label for="tournamentFee">رسوم التسجيل (ريال)</label><input type="number" id="tournamentFee" required></div>
+<div class="form-group"><label for="tournamentDetails">التفاصيل</label><textarea id="tournamentDetails"></textarea></div>
+<div class="btn-group">
+<button type="submit" class="btn btn-primary">
+<i class="fas fa-plus-circle"></i> إنشاء البطولة
+</button>
+</div>
+</form>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="showOwnerSection('tournaments')">
+<i class="fas fa-arrow-left"></i> العودة للوحة التحكم
+</button>
+</div>
+</div>
+
+<script>
+// --- Location & Map Variables ---
+let map;
+let userMarker;
+let venueMarkers = [];
+let userLocation = null;
+let currentMapStyle = 'street';
+let venueMap;
+
+// --- Databases & Data Persistence ---
+function loadData() {
+    return {
+        pendingOwnerAccounts: JSON.parse(localStorage.getItem('pendingOwnerAccounts')) || [],
+        approvedOwners: JSON.parse(localStorage.getItem('approvedOwners')) || [],
+        publishedVenues: JSON.parse(localStorage.getItem('publishedVenues')) || [],
+        allBookings: JSON.parse(localStorage.getItem('allBookings')) || [],
+        tournaments: JSON.parse(localStorage.getItem('tournaments')) || [],
+        reviews: JSON.parse(localStorage.getItem('reviews')) || [],
+        discountCodes: JSON.parse(localStorage.getItem('discountCodes')) || [],
+        notifications: JSON.parse(localStorage.getItem('notifications')) || [],
+        chatMessages: JSON.parse(localStorage.getItem('chatMessages')) || []
+    };
+}
+
+function saveData(data) {
+    localStorage.setItem('pendingOwnerAccounts', JSON.stringify(data.pendingOwnerAccounts));
+    localStorage.setItem('approvedOwners', JSON.stringify(data.approvedOwners));
+    localStorage.setItem('publishedVenues', JSON.stringify(data.publishedVenues));
+    localStorage.setItem('allBookings', JSON.stringify(data.allBookings));
+    localStorage.setItem('tournaments', JSON.stringify(data.tournaments));
+    localStorage.setItem('reviews', JSON.stringify(data.reviews));
+    localStorage.setItem('discountCodes', JSON.stringify(data.discountCodes));
+    localStorage.setItem('notifications', JSON.stringify(data.notifications));
+    localStorage.setItem('chatMessages', JSON.stringify(data.chatMessages));
+}
+
+let db = loadData();
+
+// --- State Management ---
+let currentLoggedInUser = null;
+let currentVenueId = null;
+let pendingBooking = null;
+let currentPendingBookingId = null;
+let currentSport = 'football';
+
+// --- Location Functions ---
+function initializeMap() {
+    if (!map) {
+        map = L.map('mapContainer').setView([24.7136, 46.6753], 11); // Default: Riyadh
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add click event to map
+        map.on('click', function(e) {
+            console.log('Clicked at: ' + e.latlng);
+        });
+    }
+    
+    // Add venue markers
+    updateVenueMarkers();
+}
+
+function updateVenueMarkers() {
+    // Clear existing markers
+    venueMarkers.forEach(marker => map.removeLayer(marker));
+    venueMarkers = [];
+
+    // Add markers for venues
+    db.publishedVenues.forEach(venue => {
+        if (venue.sport === currentSport && venue.lat && venue.lng) {
+            const marker = L.marker([venue.lat, venue.lng])
+                .addTo(map)
+                .bindPopup(`
+                    <div style="text-align: right; direction: rtl;">
+                        <h4>${venue.name}</h4>
+                        <p><i class="fas fa-map-marker-alt"></i> ${venue.location}</p>
+                        <p><i class="fas fa-phone"></i> ${venue.contact}</p>
+                        <button class="btn btn-primary btn-sm" onclick="showVenueDetails(${venue.id})">
+                            <i class="fas fa-info-circle"></i> التفاصيل
+                        </button>
+                    </div>
+                `);
+            venueMarkers.push(marker);
+        }
+    });
+}
+
+function getUserLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                // Add user marker
+                if (userMarker) {
+                    map.removeLayer(userMarker);
+                }
+                
+                userMarker = L.marker([userLocation.lat, userLocation.lng], {
+                    icon: L.divIcon({
+                        html: '<i class="fas fa-user-circle" style="color: #3498db; font-size: 24px;"></i>',
+                        iconSize: [24, 24],
+                        className: 'user-location-marker'
+                    })
+                }).addTo(map).bindPopup('موقعك الحالي');
+                
+                // Center map on user location
+                map.setView([userLocation.lat, userLocation.lng], 12);
+                
+                // Update nearby venues
+                updateNearbyVenues();
+                calculateDistances();
+                
+                showNotification('تم تحديد موقعك بنجاح!', 'success');
+            },
+            error => {
+                console.error('Error getting location:', error);
+                showNotification('لم نتمكن من تحديد موقعك. يرجى التحقق من إعدادات الموقع.', 'error');
+            }
+        );
+    } else {
+        showNotification('المتصفح لا يدعم تحديد الموقع', 'error');
+    }
+}
+
+function updateNearbyVenues() {
+    if (!userLocation) return;
+    
+    const nearbyList = document.getElementById('nearbyList');
+    nearbyList.innerHTML = '';
+    
+    const maxDistance = parseFloat(document.getElementById('distanceSlider').value);
+    const nearbyVenues = db.publishedVenues
+        .filter(venue => venue.sport === currentSport)
+        .map(venue => {
+            const distance = calculateDistance(userLocation, venue);
+            return { ...venue, distance };
+        })
+        .filter(venue => venue.distance <= maxDistance)
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 5); // Show top 5 nearby venues
+    
+    if (nearbyVenues.length === 0) {
+        nearbyList.innerHTML = '<p class="text-center">لا توجد منشآت قريبة ضمن المسافة المحددة</p>';
+        return;
+    }
+    
+    nearbyVenues.forEach(venue => {
+        const item = document.createElement('div');
+        item.className = 'nearby-item';
+        item.onclick = () => showVenueDetails(venue.id);
+        item.innerHTML = `
+            <div class="nearby-venue-info">
+                <div class="nearby-venue-name">${venue.name}</div>
+                <div class="nearby-venue-distance">
+                    <i class="fas fa-route"></i> ${venue.distance.toFixed(1)} كم
+                </div>
+                <div class="nearby-venue-rating">
+                    ${generateStars(getAverageRating(venue.id))}
+                </div>
+            </div>
+            <button class="btn btn-primary btn-sm">
+                <i class="fas fa-arrow-left"></i> عرض
+            </button>
+        `;
+        nearbyList.appendChild(item);
+    });
+}
+
+function calculateDistance(point1, point2) {
+    if (!point1.lat || !point1.lng || !point2.lat || !point2.lng) return Infinity;
+    
+    const R = 6371; // Earth's radius in km
+    const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+    const dLng = (point2.lng - point1.lng) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+function calculateDistances() {
+    if (!userLocation) return;
+    
+    // Update distance display for all venues
+    db.publishedVenues.forEach(venue => {
+        if (venue.sport === currentSport) {
+            venue.distance = calculateDistance(userLocation, venue);
+        }
+    });
+}
+
+function updateDistanceFilter(value) {
+    document.getElementById('distanceValue').textContent = value + ' كم';
+    if (userLocation) {
+        updateNearbyVenues();
+    }
+}
+
+function filterByDistance() {
+    if (!userLocation) {
+        showNotification('يرجى تحديد موقعك أولاً', 'error');
+        return;
+    }
+    
+    const maxDistance = parseFloat(document.getElementById('distanceSlider').value);
+    const filtered = db.publishedVenues.filter(venue => {
+        return venue.sport === currentSport && 
+               venue.distance && 
+               venue.distance <= maxDistance;
+    });
+    
+    renderVenues(filtered);
+    showNotification(`تم عرض ${filtered.length} منشأة ضمن مسافة ${maxDistance} كم`, 'success');
+}
+
+function clearLocationFilter() {
+    document.getElementById('distanceSlider').value = 10;
+    document.getElementById('distanceValue').textContent = '10 كم';
+    displayVenuesForPlayer();
+}
+
+function centerMapOnUser() {
+    if (userLocation) {
+        map.setView([userLocation.lat, userLocation.lng], 14);
+    } else {
+        getUserLocation();
+    }
+}
+
+function toggleMapStyle() {
+    // Simple toggle between different tile layers
+    const tiles = [
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'
+    ];
+    
+    currentMapStyle = (currentMapStyle + 1) % tiles.length;
+    
+    map.eachLayer(layer => {
+        if (layer instanceof L.TileLayer) {
+            map.removeLayer(layer);
+        }
+    });
+    
+    L.tileLayer(tiles[currentMapStyle], {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+}
+
+function toggleFullscreen() {
+    const mapContainer = document.getElementById('mapContainer');
+    if (!document.fullscreenElement) {
+        mapContainer.requestFullscreen().catch(err => {
+            console.error('Error attempting to enable fullscreen:', err);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+function getDirections() {
+    const venue = db.publishedVenues.find(v => v.id === currentVenueId);
+    if (!venue || !userLocation) return;
+    
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${venue.lat},${venue.lng}`;
+    window.open(url, '_blank');
+}
+
+function initializeVenueMap() {
+    const venue = db.publishedVenues.find(v => v.id === currentVenueId);
+    if (!venue || !venue.lat || !venue.lng) return;
+    
+    // Initialize venue detail map
+    venueMap = L.map('venueMap').setView([venue.lat, venue.lng], 15);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(venueMap);
+    
+    // Add venue marker
+    L.marker([venue.lat, venue.lng])
+        .addTo(venueMap)
+        .bindPopup(`<b>${venue.name}</b><br>${venue.location}`)
+        .openPopup();
+    
+    // Update distance if user location is available
+    if (userLocation) {
+        const distance = calculateDistance(userLocation, venue);
+        document.getElementById('venueDistance').innerHTML = `
+            <i class="fas fa-route"></i>
+            <span>${distance.toFixed(1)} كم من موقعك</span>
+        `;
+    }
+    
+    document.getElementById('venueLocationText').textContent = venue.location;
+}
+
+// --- Page Navigation ---
+function showPage(pageId) {
+    const pages = document.querySelectorAll('body > div');
+    pages.forEach(page => page.classList.add('hidden'));
+    document.getElementById(pageId).classList.remove('hidden');
+
+    const header = document.getElementById('appHeader');
+    if (['playerInterface', 'venueDetailPage', 'paymentPage', 'tournamentsPage', 'chatPage', 'adminChatPage', 'sportsSelectionPage'].includes(pageId)) {
+        header.classList.remove('hidden');
+        document.getElementById('headerUserName').textContent = 'ضيف';
+    } else {
+        header.classList.add('hidden');
+    }
+
+    if (pageId === 'playerInterface') {
+        displayVenuesForPlayer();
+        setTimeout(() => initializeMap(), 100);
+    }
+    if (pageId === 'venueDetailPage') {
+        setTimeout(() => initializeVenueMap(), 100);
+    }
+    if (pageId === 'ownerDashboard') { showOwnerSection('overview'); }
+    if (pageId === 'adminDashboard') { showAdminSection('overview'); }
+    if (pageId === 'tournamentsPage') displayAllTournaments();
+    if (pageId === 'createTournamentPage') populateVenueSelect();
+    if (pageId === 'chatPage') loadChatMessages(currentPendingBookingId, 'user');
+    if (pageId === 'adminChatPage') loadChatMessages(currentPendingBookingId, 'admin');
+}
+
+// --- Sport Selection ---
+function selectSport(sport) {
+    currentSport = sport;
+    showPage('playerInterface');
+    updatePlayerInterfaceHeader();
+    updateFiltersForSport();
+    displayVenuesForPlayer();
+    updateVenueMarkers();
+}
+
+function updatePlayerInterfaceHeader() {
+    const titles = {
+        football: '<i class="fas fa-futbol"></i> اكتشف ملاعب كرة القدم',
+        volleyball: '<i class="fas fa-volleyball-ball"></i> اكتشف ملاعب كرة الطائرة',
+        basketball: '<i class="fas fa-basketball-ball"></i> اكتشف ملاعب كرة السلة',
+        tennis: '<i class="fas fa-table-tennis"></i> اكتشف ملاعب تنس الطاولة',
+        swimming: '<i class="fas fa-swimmer"></i> اكتشف المسابح',
+        esports: '<i class="fas fa-gamepad"></i> اكتشف مراكز الرياضات الإلكترونية'
+    };
+    document.getElementById('playerInterfaceTitle').innerHTML = titles[currentSport] || titles['football'];
+}
+
+function updateFiltersForSport() {
+    const surfaceFilter = document.getElementById('filterSurface');
+    const sizeFilter = document.getElementById('filterSize');
+
+    surfaceFilter.innerHTML = '<option value="">الكل</option>';
+    sizeFilter.innerHTML = '<option value="">الكل</option>';
+
+    const sportFilters = {
+        football: { surface: ['عشبي طبيعي', 'عشبي صناعي'], size: ['5vs5', '7vs7', '11vs11'] },
+        volleyball: { surface: ['رمل', 'باركيه'], size: ['مقاس واحد'] },
+        basketball: { surface: ['باركيه', 'اسمنتي'], size: ['مقاس واحد'] },
+        tennis: { surface: ['أسفلت', 'صلصال', 'عشب'], size: ['مقاس واحد', 'مقاس مزدوج'] },
+        swimming: { surface: ['ماء'], size: ['مسبح صغير', 'مسبح كبير', 'مسبح أولمبي'] },
+        esports: { surface: ['كمبيوتر', 'PlayStation', 'Xbox'], size: ['غرفة فردية', 'غرفة مزدوجة'] }
+    };
+
+    const filters = sportFilters[currentSport] || sportFilters['football'];
+    filters.surface.forEach(s => surfaceFilter.innerHTML += `<option value="${s}">${s}</option>`);
+    filters.size.forEach(s => sizeFilter.innerHTML += `<option value="${s}">${s}</option>`);
+}
+
+// --- Player Interface (Guest) ---
+function displayVenuesForPlayer() {
+    const venues = db.publishedVenues.filter(v => v.sport === currentSport);
+    renderVenues(venues);
+}
+
+function applyFilters() {
+    const city = document.getElementById('citySearchInput').value.toLowerCase();
+    const surface = document.getElementById('filterSurface').value;
+    const size = document.getElementById('filterSize').value;
+    const lights = document.getElementById('filterLights').value;
+
+    const filtered = db.publishedVenues.filter(v => {
+        return v.sport === currentSport &&
+            (city ? v.city.toLowerCase().includes(city) : true) &&
+            (surface ? v.surface === surface : true) &&
+            (size ? v.size === size : true) &&
+            (lights ? v.lights.toString() === lights : true);
+    });
+    renderVenues(filtered);
+}
+
+function renderVenues(venuesToRender) {
+    const container = document.getElementById('venuesListForPlayer');
+    container.innerHTML = '';
+    if (venuesToRender.length === 0) { 
+        container.innerHTML = '<p class="text-center">لا توجد منشآت مطابقة لبحثك.</p>'; 
+        return; 
+    }
+    
+    venuesToRender.forEach(venue => {
+        const card = document.createElement('li'); 
+        card.className = 'venue-card'; 
+        card.onclick = () => showVenueDetails(venue.id);
+        
+        const avgRating = getAverageRating(venue.id);
+        const icon = getSportIcon(venue.sport);
+        const distance = venue.distance ? `<div class="distance-info"><i class="fas fa-route"></i> ${venue.distance.toFixed(1)} كم</div>` : '';
+        
+        card.innerHTML = `
+            <div class="venue-image-placeholder"><i class="${icon}"></i></div>
+            <div class="venue-card-body">
+                <h3>${venue.name}</h3>
+                <p><i class="fas fa-map-marker-alt"></i> ${venue.city}</p>
+                <p><i class="fas fa-user"></i> ${venue.ownerName}</p>
+                <p><i class="fas fa-phone"></i> ${venue.contact}</p>
+                ${distance}
+                <div class="rating">${generateStars(avgRating)}</div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function getSportIcon(sport) {
+    const icons = {
+        football: 'fas fa-futbol',
+        volleyball: 'fas fa-volleyball-ball',
+        basketball: 'fas fa-basketball-ball',
+        tennis: 'fas fa-table-tennis',
+        swimming: 'fas fa-swimmer',
+        esports: 'fas fa-gamepad'
+    };
+    return icons[sport] || 'fas fa-futbol';
+}
+
+// --- Venue Detail & Booking (Guest) ---
+function showVenueDetails(venueId) {
+    currentVenueId = venueId;
+    const venue = db.publishedVenues.find(v => v.id === venueId); 
+    if (!venue) return;
+    
+    document.getElementById('detailVenueName').textContent = venue.name;
+    
+    let infoHtml = `
+        <p><strong>المدينة:</strong> ${venue.city}</p>
+        <p><strong>الموقع:</strong> ${venue.location}</p>
+        <p><strong>التواصل:</strong> ${venue.contact}</p>
+        <p><strong>التفاصيل:</strong> ${venue.details || 'لا توجد تفاصيل إضافية'}</p>
+        <p><strong>السطح:</strong> ${venue.surface}</p>
+        <p><strong>الحجم:</strong> ${venue.size}</p>
+        <p><strong>الإضاءة:</strong> ${venue.lights ? 'متوفرة' : 'غير متوفرة'}</p>
+    `;
+    
+    if (venue.sport === 'esports') {
+        infoHtml += `
+            <p><strong>عدد الأجهزة:</strong> ${venue.equipmentCount || 'N/A'}</p>
+            <p><strong>الألعاب المتوفرة:</strong> ${venue.availableGames ? venue.availableGames.join(', ') : 'N/A'}</p>
+        `;
+    }
+    
+    document.getElementById('detailVenueInfo').innerHTML = infoHtml;
+    document.getElementById('reviewsContainer').innerHTML = renderReviews(venueId);
+    
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('bookingDate').setAttribute('min', today);
+    document.getElementById('bookingDate').value = today;
+    
+    generateTimeSlots();
+    showPage('venueDetailPage');
+}
+
+function generateTimeSlots() {
+    const venue = db.publishedVenues.find(v => v.id === currentVenueId);
+    const selectedDate = document.getElementById('bookingDate').value;
+    const container = document.getElementById('timeSlotsContainer'); 
+    container.innerHTML = '';
+    
+    for (let hour = venue.openingHour; hour < venue.closingHour; hour++) {
+        const timeString = `${hour.toString().padStart(2, '0')}:00`;
+        const isBooked = db.allBookings.some(b => 
+            b.venueId === currentVenueId && 
+            b.date === selectedDate && 
+            b.time === timeString && 
+            b.paymentStatus === 'confirmed'
+        );
+        const isPeak = hour >= 18 && hour <= 21;
+        const price = isPeak ? venue.pricePeak : venue.priceOffPeak;
+        
+        const slotDiv = document.createElement('div');
+        slotDiv.className = `time-slot ${isBooked ? 'booked' : 'available'}`;
+        slotDiv.innerHTML = `
+            ${timeString}<br>
+            <span class="price-tag">${price} ريال</span>
+        `;
+        
+        if (isBooked) { 
+            slotDiv.innerHTML += `<br><small>محجوز</small>`; 
+        } else { 
+            slotDiv.onclick = () => initiateBooking(selectedDate, timeString, price); 
+        }
+        
+        container.appendChild(slotDiv);
+    }
+}
+
+function initiateBooking(date, time, price) {
+    const playerName = prompt("ادخل رقم الهاتف و أدخل اسمك الكامل لتأكيد الحجز:"); 
+    if (!playerName) return;
+    
+    pendingBooking = { date, time, basePrice: price };
+    const discountCode = document.getElementById('discountCodeInput').value;
+    const discount = db.discountCodes.find(d => d.code === discountCode);
+    const finalPrice = discount ? price * (1 - discount.percent / 100) : price;
+    
+    pendingBooking.finalPrice = finalPrice;
+    pendingBooking.discountCode = discount ? discount.code : null;
+    pendingBooking.playerName = playerName;
+
+    const venue = db.publishedVenues.find(v => v.id === currentVenueId);
+    document.getElementById('paymentSummary').innerHTML = `
+        <p><strong>المنشأة:</strong> ${venue.name}</p>
+        <p><strong>اللاعب:</strong> ${playerName}</p>
+        <p><strong>التاريخ:</strong> ${date}</p>
+        <p><strong>الوقت:</strong> ${time}</p>
+        <p><strong>السعر الأساسي:</strong> ${price} ريال</p>
+        ${discount ? `<p><strong>الخصم (${discount.code}):</strong> ${discount.percent}%</p>` : ''}
+        <h3>المبلغ الإجمالي: <span class="price-tag">${finalPrice} ريال</span></h3>
+    `;
+    showPage('paymentPage');
+}
+
+// --- Redirect to PayPal ---
+function redirectToPayPal() {
+    if (!pendingBooking) return;
+    window.open('https://www.paypal.com/invoice/p/#5R5CFWDZCYHEKJMS', '_blank');
+    const newBooking = { 
+        id: Date.now(), 
+        venueId: currentVenueId, 
+        venue: db.publishedVenues.find(v => v.id === currentVenueId), 
+        playerName: pendingBooking.playerName, 
+        date: pendingBooking.date, 
+        time: pendingBooking.time, 
+        finalPrice: pendingBooking.finalPrice, 
+        paymentMethod: 'paypal', 
+        paymentStatus: 'pending_payment_confirmation' 
+    };
+    db.allBookings.push(newBooking); 
+    saveData(db);
+    currentPendingBookingId = newBooking.id;
+    addNotification(`حجز جديد في انتظار تأكيد الدفع: ${newBooking.venue.name} بواسطة ${newBooking.playerName}`);
+    document.getElementById('paymentMessage').textContent = 'تم توجيهك إلى صفحة PayPal. الآن، يرجى إرسال صورة تأكيد الدفع عبر الدردشة.';
+    document.getElementById('paymentMessage').className = 'message success'; 
+    document.getElementById('paymentMessage').classList.remove('hidden');
+    pendingBooking = null;
+    setTimeout(() => { showPage('chatPage'); }, 2000);
+}
+
+// --- Chat Functions ---
+function loadChatMessages(bookingId, userType) {
+    const messagesContainer = userType === 'admin' ? document.getElementById('adminChatMessages') : document.getElementById('chatMessages');
+    messagesContainer.innerHTML = '';
+    const messages = db.chatMessages.filter(m => m.bookingId === bookingId);
+    if (messages.length === 0) { 
+        const welcomeMsg = { 
+            sender: 'admin', 
+            text: 'مرحباً! يرجى إرسال صورة تأكيد الدفع لتأكيد حجزك.', 
+            timestamp: Date.now() 
+        }; 
+        db.chatMessages.push({ ...welcomeMsg, bookingId }); 
+        saveData(db); 
+        messages.push(welcomeMsg); 
+    }
+    messages.forEach(msg => displayMessage(msg, messagesContainer));
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function displayMessage(msg, container) {
+    const messageDiv = document.createElement('div'); 
+    messageDiv.className = `message-bubble ${msg.sender}`;
+    let content = `<p>${msg.text}</p>`; 
+    if (msg.imageUrl) { 
+        content += `<img src="${msg.imageUrl}" alt="صورة تأكيد الدفع">`; 
+    }
+    messageDiv.innerHTML = content; 
+    container.appendChild(messageDiv);
+}
+
+function sendMessage() {
+    const input = document.getElementById('chatInput'); 
+    const text = input.value.trim();
+    if (!text || !currentPendingBookingId) return;
+    
+    const message = { 
+        bookingId: currentPendingBookingId, 
+        sender: 'user', 
+        text: text, 
+        timestamp: Date.now() 
+    };
+    db.chatMessages.push(message); 
+    saveData(db);
+    displayMessage(message, document.getElementById('chatMessages'));
+    input.value = ''; 
+    document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+}
+
+function sendImage(event) {
+    const file = event.target.files[0]; 
+    if (!file || !currentPendingBookingId) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const message = { 
+            bookingId: currentPendingBookingId, 
+            sender: 'user', 
+            text: 'تم إرسال صورة تأكيد الدفع.', 
+            imageUrl: e.target.result, 
+            timestamp: Date.now() 
+        };
+        db.chatMessages.push(message); 
+        saveData(db);
+        displayMessage(message, document.getElementById('chatMessages'));
+        document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+        addNotification(`تم إرسال صورة تأكيد الدفع لحجز #${currentPendingBookingId}`);
+    };
+    reader.readAsDataURL(file); 
+    event.target.value = '';
+}
+
+function showAdminChat(bookingId) { 
+    currentPendingBookingId = bookingId; 
+    showPage('adminChatPage'); 
+}
+
+function confirmBookingFromChat() {
+    if (!currentPendingBookingId) return;
+    const bookingIndex = db.allBookings.findIndex(b => b.id === currentPendingBookingId);
+    if (bookingIndex > -1) { 
+        db.allBookings[bookingIndex].paymentStatus = 'confirmed'; 
+        saveData(db);
+        const confirmationMsg = { 
+            bookingId: currentPendingBookingId, 
+            sender: 'admin', 
+            text: 'تم تأكيد حجزك بنجاح! شكراً لك.', 
+            timestamp: Date.now() 
+        };
+        db.chatMessages.push(confirmationMsg); 
+        saveData(db);
+        displayMessage(confirmationMsg, document.getElementById('adminChatMessages'));
+        addNotification(`تم تأكيد الحجز #${currentPendingBookingId} بنجاح.`); 
+        alert('تم تأكيد الحجز بنجاح!'); 
+        showAdminSection('bookings');
+    }
+}
+
+// --- Notification System ---
+function addNotification(text) { 
+    db.notifications.unshift({ id: Date.now(), text, read: false }); 
+    saveData(db); 
+    renderNotifications(); 
+}
+
+function showNotification(text, type) {
+    const notification = document.createElement('div');
+    notification.className = `message ${type}`;
+    notification.textContent = text;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.left = '50%';
+    notification.style.transform = 'translateX(-50%)';
+    notification.style.zIndex = '9999';
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+function renderNotifications() {
+    const dropdown = document.getElementById('notificationDropdown'); 
+    const badge = document.getElementById('notificationBadge');
+    dropdown.innerHTML = ''; 
+    const unreadCount = db.notifications.filter(n => !n.read).length; 
+    badge.textContent = unreadCount > 0 ? unreadCount : '';
+    
+    if (db.notifications.length === 0) { 
+        dropdown.innerHTML = '<div class="notification-item">لا توجد إشعارات</div>'; 
+        return; 
+    }
+    
+    db.notifications.forEach(n => {
+        const item = document.createElement('div'); 
+        item.className = 'notification-item';
+        item.textContent = n.text; 
+        item.onclick = () => { 
+            n.read = true; 
+            saveData(db); 
+            renderNotifications(); 
+        };
+        dropdown.appendChild(item);
+    });
+}
+
+function toggleNotifications() { 
+    document.getElementById('notificationDropdown').classList.toggle('show'); 
+}
+
+// --- Authentication ---
+document.getElementById('ownerRegistrationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const newOwner = { 
+        id: Date.now(), 
+        name: document.getElementById('ownerName').value, 
+        email: document.getElementById('ownerEmail').value, 
+        password: document.getElementById('ownerPassword').value, 
+        phone: document.getElementById('ownerPhone').value, 
+        type: 'owner' 
+    };
+    db.pendingOwnerAccounts.push(newOwner); 
+    saveData(db);
+    alert('تم إرسال طلبك بنجاح! سيتم مراجعته من قبل الإدارة.'); 
+    showPage('ownerLoginPage');
+});
+
+document.getElementById('ownerLoginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const email = document.getElementById('ownerLoginEmail').value; 
+    const password = document.getElementById('ownerLoginPassword').value;
+    currentLoggedInUser = db.approvedOwners.find(o => o.email === email && o.password === password);
+    if (currentLoggedInUser) showPage('ownerDashboard'); 
+    else alert('بيانات الدخول غير صحيحة أو حسابك لم يتم تفعيله بعد.');
+});
+
+document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (document.getElementById('adminEmail').value === 'admin@mal3abi.com' && document.getElementById('adminPassword').value === 'admin123') {
+        currentLoggedInUser = { name: 'Admin', type: 'admin' }; 
+        showPage('adminDashboard');
+    } else { 
+        alert('بيانات الاعتماد غير صحيحة.'); 
+    }
+});
+
+function logout() { 
+    currentLoggedInUser = null; 
+    showPage('mainMenuPage'); 
+}
+
+// --- Admin Dashboard Logic ---
+function showAdminSection(section) {
+    const content = document.getElementById('adminContent');
+    if (event && event.target && event.target.tagName === 'A') { 
+        const links = document.querySelectorAll('.admin-sidebar a'); 
+        links.forEach(l => l.classList.remove('active')); 
+        event.target.classList.add('active'); 
+    }
+    
+    switch(section) {
+        case 'overview': content.innerHTML = `<h2>نظرة عامة</h2>${renderAdminStats()}`; break;
+        case 'approvals': content.innerHTML = `<h2>حسابات في انتظار الموافقة</h2>${renderPendingOwners()}`; break;
+        case 'users': content.innerHTML = `<h2>إدارة الحسابات</h2>${renderAllUsers()}`; break;
+        case 'venues': content.innerHTML = `<h2>إدارة المنشآت</h2>${renderAllVenues()}`; break;
+        case 'add-venue': content.innerHTML = `<h2>إضافة منشأة جديدة</h2>${renderAddVenueForm('admin')}`; break;
+        case 'bookings': content.innerHTML = `<h2>إدارة الحجوزات</h2>${renderAllBookings()}`; break;
+        case 'tournaments': content.innerHTML = `<h2>إدارة البطولات</h2>${renderAllTournaments()}`; break;
+        case 'discounts': content.innerHTML = `<h2>إدارة الخصومات</h2>${renderDiscountManagement()}`; break;
+    }
+}
+
+function renderAdminStats() {
+    const totalRevenue = db.allBookings.reduce((sum, b) => sum + b.finalPrice, 0);
+    const stats = `<ul class="stats-grid">
+        <li class="stat-card"><h3>${db.approvedOwners.length}</h3><p>إجمالي أصحاب المنشآت</p></li>
+        <li class="stat-card"><h3>${db.publishedVenues.length}</h3><p>إجمالي المنشآت</p></li>
+        <li class="stat-card"><h3>${db.allBookings.length}</h3><p>إجمالي الحجوزات</p></li>
+        <li class="stat-card"><h3>${totalRevenue}</h3><p>إجمالي الأرباح (ريال)</p></li>
+        <li class="stat-card"><h3>${db.tournaments.length}</h3><p>إجمالي البطولات</p></li>
+    </ul>`;
+    return stats;
+}
+
+function renderPendingOwners() { 
+    if (db.pendingOwnerAccounts.length === 0) return '<p class="text-center">لا توجد حسابات في انتظار الموافقة.</p>';
+    
+    let html = '<table class="admin-table"><thead><tr><th>الاسم</th><th>البريد الإلكتروني</th> <th>الهاتف</th><th>إجراء</th></tr></thead><tbody>';
+    db.pendingOwnerAccounts.forEach(owner => { 
+        html += `<tr>
+            <td>${owner.name}</td>
+            <td>${owner.email}</td>
+            <td>${owner.phone}</td>
+            <td class="actions">
+                <button class="btn btn-success btn-sm" onclick="approveOwner(${owner.id})">
+                    <i class="fas fa-check"></i> موافقة
+                </button>
+            </td>
+        </tr>`; 
+    });
+    html += '</tbody></table>'; 
+    return html;
+}
+
+function renderAllUsers() { 
+    let html = '<h3>أصحاب المنشآت</h3>';
+    if (db.approvedOwners.length === 0) html += '<p class="text-center">لا يوجد أصحاب منشآت.</p>';
+    else { 
+        html += '<table class="admin-table"><thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>الهاتف</th><th>إجراء</th></tr></thead><tbody>';
+        db.approvedOwners.forEach(o => { 
+            html += `<tr>
+                <td>${o.name}</td>
+                <td>${o.email}</td>
+                <td>${o.phone}</td>
+                <td class="actions">
+                    <button class="btn btn-danger btn-sm" onclick="deleteUser(${o.id}, 'owner')">
+                        <i class="fas fa-trash"></i> حذف
+                    </button>
+                </td>
+            </tr>`; 
+        });
+        html += '</tbody></table>'; 
+    } 
+    return html;
+}
+
+function deleteUser(userId, userType) { 
+    if (!confirm('هل أنت متأكد من حذف هذا الحساب؟')) return; 
+    const userArray = userType === 'owner' ? db.approvedOwners : []; 
+    const index = userArray.findIndex(u => u.id === userId); 
+    if (index > -1) { 
+        userArray.splice(index, 1); 
+        saveData(db); 
+        addNotification(`تم حذف حساب صاحب المنشأة.`); 
+        showAdminSection('users'); 
+    } 
+}
+
+function renderAllVenues() { 
+    if (db.publishedVenues.length === 0) return '<p class="text-center">لا توجد منشآت منشورة.</p>';
+    
+    let html = '<table class="admin-table"><thead><tr><th>الاسم</th><th>الرياضة</th><th>المدينة</th><th>صاحب المنشأة</th><th>التواصل</th><th>إجراء</th></tr></thead><tbody>';
+    db.publishedVenues.forEach(v => { 
+        const ownerName = v.ownerId ? db.approvedOwners.find(o => o.id === v.ownerId)?.name : 'غير معين';
+        html += `<tr>
+            <td>${v.name}</td>
+            <td>${getSportName(v.sport)}</td>
+            <td>${v.city}</td>
+            <td>${ownerName}</td>
+            <td>${v.contact}</td>
+            <td class="actions">
+                <button class="btn btn-danger btn-sm" onclick="deleteVenue(${v.id})">
+                    <i class="fas fa-trash"></i> حذف
+                </button>
+            </td>
+        </tr>`; 
+    });
+    html += '</tbody></table>'; 
+    return html;
+}
+
+function getSportName(sportKey) { 
+    const names = { 
+        football: 'كرة القدم', 
+        volleyball: 'كرة الطائرة', 
+        basketball: 'كرة السلة', 
+        tennis: 'تنس الطاولة', 
+        swimming: 'السباحة', 
+        esports: 'رياضات إلكترونية' 
+    }; 
+    return names[sportKey] || sportKey; 
+}
+
+function deleteVenue(venueId) { 
+    if (!confirm('هل أنت متأكد من حذف هذه المنشأة؟')) return; 
+    const index = db.publishedVenues.findIndex(v => v.id === venueId); 
+    if (index > -1) { 
+        db.publishedVenues.splice(index, 1); 
+        saveData(db); 
+        addNotification(`تم حذف المنشأة.`); 
+        showAdminSection('venues'); 
+    } 
+}
+
+function renderAddVenueForm(role) {
+    const formId = role === 'admin' ? 'adminVenueForm' : 'ownerVenueForm';
+    return `
+    <form id="${formId}" onsubmit="handleAddVenue(event, '${role}')">
+        <div class="form-group">
+            <label>نوع الرياضة</label>
+            <select id="venueSport" onchange="toggleVenueSpecificFields()" required>
+                <option value="football">كرة القدم</option>
+                <option value="volleyball">كرة الطائرة</option>
+                <option value="basketball">كرة السلة</option>
+                <option value="tennis">تنس الطاولة</option>
+                <option value="swimming">السباحة</option>
+                <option value="esports">رياضات إلكترونية</option>
+            </select>
+        </div>
+        <div class="form-group"><label>اسم المنشأة</label><input type="text" id="venueName" required></div>
+        <div class="form-group"><label>المدينة</label><input type="text" id="venueCity" required></div>
+        <div class="form-group"><label>رقم التواصل</label><input type="tel" id="venueContact" required></div>
+        <div class="form-group"><label>الموقع (العنوان)</label><input type="text" id="venueLocation" required></div>
+        <div class="form-group">
+            <label>إحداثيات العرض (Latitude)</label>
+            <input type="number" id="venueLat" step="0.000001" required>
+        </div>
+        <div class="form-group">
+            <label>إحداثيات الطول (Longitude)</label>
+            <input type="number" id="venueLng" step="0.000001" required>
+        </div>
+        <div class="form-group">
+            <label>السطح</label>
+            <select id="venueSurface">
+                <option>عشبي طبيعي</option>
+                <option>عشبي صناعي</option>
+                <option>باركيه</option>
+                <option>اسمنتي</option>
+                <option>ماء</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>الحجم</label>
+            <select id="venueSize">
+                <option>5vs5</option>
+                <option>7vs7</option>
+                <option>11vs11</option>
+                <option>مقاس واحد</option>
+                <option>مقاس مزدوج</option>
+                <option>مسبح صغير</option>
+                <option>مسبح كبير</option>
+                <option>مسبح أولمبي</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>إضاءة ليلية</label>
+            <select id="venueLights">
+                <option value="true">متوفرة</option>
+                <option value="false">غير متوفرة</option>
+            </select>
+        </div>
+        <div class="form-group"><label>الساعة خارج أوقات الذروة (ريال)</label><input type="number" id="venuePriceOffPeak" required></div>
+        <div class="form-group"><label>الساعة في أوقات الذروة (ريال)</label><input type="number" id="venuePricePeak" required></div>
+        <div class="form-group"><label>تفاصيل إضافية</label><textarea id="venueDetails"></textarea></div>
+        <div id="venueSpecificFields"></div>
+        <div class="btn-group">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> إضافة المنشأة
+            </button>
+        </div>
+    </form>
+    `;
+}
+
+function toggleVenueSpecificFields() { 
+    const sport = document.getElementById('venueSport').value; 
+    const container = document.getElementById('venueSpecificFields'); 
+    container.innerHTML = ''; 
+    
+    if (sport === 'esports') { 
+        container.innerHTML = `
+            <div class="form-group">
+                <label>عدد الأجهزة</label>
+                <input type="number" id="venueEquipmentCount">
+            </div>
+            <div class="form-group">
+                <label>الألعاب المتوفرة</label>
+                <ul class="checkbox-group">
+                    <li><label><input type="checkbox" name="games" value="FIFA"> FIFA</label></li>
+                    <li><label><input type="checkbox" name="games" value="PES"> PES</label></li>
+                    <li><label><input type="checkbox" name="games" value="Fortnite"> Fortnite</label></li>
+                    <li><label><input type="checkbox" name="games" value="PUBG"> PUBG</label></li>
+                </ul>
+            </div>
+        `; 
+    } 
+}
+
+function handleAddVenue(event, role) {
+    event.preventDefault();
+    const gameCheckboxes = document.querySelectorAll('input[name="games"]:checked');
+    const availableGames = Array.from(gameCheckboxes).map(cb => cb.value);
+    
+    const newVenue = {
+        id: Date.now(), 
+        ownerId: role === 'owner' ? currentLoggedInUser.id : null, 
+        ownerName: role === 'owner' ? currentLoggedInUser.name : 'غير معين',
+        sport: document.getElementById('venueSport').value, 
+        name: document.getElementById('venueName').value, 
+        city: document.getElementById('venueCity').value,
+        contact: document.getElementById('venueContact').value, 
+        location: document.getElementById('venueLocation').value,
+        lat: parseFloat(document.getElementById('venueLat').value),
+        lng: parseFloat(document.getElementById('venueLng').value),
+        surface: document.getElementById('venueSurface').value,
+        size: document.getElementById('venueSize').value, 
+        lights: document.getElementById('venueLights').value === 'true', 
+        priceOffPeak: parseInt(document.getElementById('venuePriceOffPeak').value),
+        pricePeak: parseInt(document.getElementById('venuePricePeak').value), 
+        details: document.getElementById('venueDetails').value, 
+        openingHour: 16, 
+        closingHour: 23, 
+        slotDuration: 60
+    };
+    
+    if (newVenue.sport === 'esports') { 
+        newVenue.equipmentCount = parseInt(document.getElementById('venueEquipmentCount').value); 
+        newVenue.availableGames = availableGames; 
+    }
+    
+    db.publishedVenues.push(newVenue); 
+    saveData(db);
+    addNotification(`تم إضافة منشأة جديدة: ${newVenue.name}`); 
+    alert('تمت إضافة المنشأة بنجاح!');
+    
+    if (role === 'admin') showAdminSection('venues'); 
+    else showOwnerSection('venues');
+}
+
+function renderAllBookings() { 
+    if (db.allBookings.length === 0) return '<p class="text-center">لا توجد حجوزات.</p>';
+    
+    let html = '<table class="admin-table"><thead><tr><th>المنشأة</th><th>اللاعب</th><th>التاريخ</th><th>الوقت</th><th>السعر</th><th>حالة الدفع</th><th>الإجراءات</th></tr></thead><tbody>';
+    db.allBookings.forEach(b => {
+        let statusText = 'مؤكد'; 
+        let statusClass = 'message success';
+        if (b.paymentStatus === 'pending_payment_confirmation') { 
+            statusText = 'في انتظار التأكيد'; 
+            statusClass = 'message error'; 
+        }
+        html += `<tr>
+            <td>${b.venue.name}</td>
+            <td>${b.playerName}</td>
+            <td>${b.date}</td>
+            <td>${b.time}</td>
+            <td>${b.finalPrice} ريال</td>
+            <td><span class="${statusClass}" style="padding: 5px 10px; border-radius: 5px; display:inline-block;">${statusText}</span></td>
+            <td class="actions">
+                ${b.paymentStatus === 'pending_payment_confirmation' ? `<button class="btn btn-primary btn-sm" onclick="showAdminChat(${b.id})"><i class="fas fa-comments"></i> عرض الدردشة</button>` : ''} 
+                <button class="btn btn-danger btn-sm" onclick="deleteBooking(${b.id})"><i class="fas fa-trash"></i> حذف</button>
+            </td>
+        </tr>`; 
+    });
+    html += '</tbody></table>'; 
+    return html;
+}
+
+function deleteBooking(bookingId) { 
+    if (!confirm('هل أنت متأكد من حذف هذا الحجز؟')) return; 
+    const bookingIndex = db.allBookings.findIndex(b => b.id === bookingId); 
+    if (bookingIndex > -1) { 
+        db.allBookings.splice(bookingIndex, 1); 
+        db.chatMessages = db.chatMessages.filter(m => m.bookingId !== bookingId); 
+        saveData(db); 
+        addNotification(`تم حذف الحجز #${bookingId}.`); 
+        showAdminSection('bookings'); 
+    } 
+}
+
+function renderAllTournaments() { 
+    if (db.tournaments.length === 0) return '<p class="text-center">لا توجد بطولات.</p>';
+    
+    let html = '<table class="admin-table"><thead><tr><th>الاسم</th><th>الرياضة</th><th>المنشأة</th><th>التاريخ</th><th>رسوم التسجيل</th><th>المسجلون</th></tr></thead><tbody>';
+    db.tournaments.forEach(t => { 
+        html += `<tr>
+            <td>${t.name}</td>
+            <td>${getSportName(t.sport)}</td>
+            <td>${t.venue.name}</td>
+            <td>${t.date}</td>
+            <td>${t.fee} ريال</td>
+            <td>${t.registeredPlayers.length}</td>
+        </tr>`; 
+    });
+    html += '</tbody></table>'; 
+    return html;
+}
+
+function renderDiscountManagement() { 
+    let html = `<h3>إنشاء كود خصم جديد</h3>
+    <form id="adminDiscountForm" onsubmit="createAdminDiscount(event)">
+        <div class="form-group" style="display: flex; gap: 10px;">
+            <input type="text" id="adminDiscountCode" placeholder="كود الخصم" required style="flex: 1;">
+            <input type="number" id="adminDiscountPercent" placeholder="نسبة الخصم %" min="1" max="100" required style="flex: 1;">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-plus"></i> إنشاء
+            </button>
+        </div>
+    </form>
+    <h3 style="margin-top: 40px;">الأكواد الحالية</h3>`;
+    
+    if (db.discountCodes.length === 0) { 
+        html += '<p class="text-center">لا توجد أكواد خصوم متاحة.</p>'; 
+    } else { 
+        html += '<table class="admin-table"><thead><tr><th>كود الخصم</th><th>نسبة الخصم (%)</th><th>إجراء</th></tr></thead><tbody>';
+        db.discountCodes.forEach(d => { 
+            html += `<tr>
+                <td>${d.code}</td>
+                <td>${d.percent}</td>
+                <td class="actions">
+                    <button class="btn btn-danger btn-sm" onclick="deleteDiscount(${d.id})">
+                        <i class="fas fa-trash"></i> حذف
+                    </button>
+                </td>
+            </tr>`; 
+        });
+        html += '</tbody></table>'; 
+    } 
+    return html;
+}
+
+function createAdminDiscount(event) { 
+    event.preventDefault(); 
+    const code = document.getElementById('adminDiscountCode').value; 
+    const percent = parseInt(document.getElementById('adminDiscountPercent').value); 
+    db.discountCodes.push({ id: Date.now(), code, percent }); 
+    saveData(db); 
+    addNotification(`تم إنشاء كود خصم جديد: ${code}`); 
+    showAdminSection('discounts'); 
+}
+
+function deleteDiscount(discountId) { 
+    if (!confirm('هل أنت متأكد من حذف هذا الكود؟')) return; 
+    const index = db.discountCodes.findIndex(d => d.id === discountId); 
+    if (index > -1) { 
+        db.discountCodes.splice(index, 1); 
+        saveData(db); 
+        addNotification('تم حذف كود الخصم.'); 
+        showAdminSection('discounts'); 
+    } 
+}
+
+function approveOwner(ownerId) {
+    const ownerIndex = db.pendingOwnerAccounts.findIndex(o => o.id === ownerId);
+    if (ownerIndex > -1) {
+        const approvedOwner = db.pendingOwnerAccounts[ownerIndex];
+        db.approvedOwners.push(approvedOwner);
+        db.pendingOwnerAccounts.splice(ownerIndex, 1);
+        saveData(db);
+        addNotification(`تمت الموافقة على حساب ${approvedOwner.name}!`);
+        showAdminSection('approvals');
+    }
+}
+
+// --- Owner Dashboard Logic ---
+function showOwnerSection(section) {
+    const content = document.getElementById('ownerContent');
+    if (event && event.target && event.target.tagName === 'A') { 
+        const links = document.querySelectorAll('.owner-sidebar a'); 
+        links.forEach(l => l.classList.remove('active')); 
+        event.target.classList.add('active'); 
+    }
+    
+    switch(section) {
+        case 'overview': content.innerHTML = `<h2>نظرة عامة</h2>${renderOwnerStats()}`; break;
+        case 'venues': content.innerHTML = `<h2>المنشآت الخاصة بي</h2>${renderOwnerVenues()}`; break;
+        case 'add-venue': content.innerHTML = `<h2>إضافة منشأة جديدة</h2>${renderAddVenueForm('owner')}`; break;
+        case 'bookings': content.innerHTML = `<h2>إدارة الحجوزات</h2>${renderOwnerBookings()}`; break;
+        case 'tournaments': content.innerHTML = `<h2>إدارة البطولات</h2>${renderOwnerTournaments()}`; break;
+    }
+}
+
+function renderOwnerStats() {
+    const ownerVenues = db.publishedVenues.filter(s => s.ownerId === currentLoggedInUser.id);
+    const ownerBookings = db.allBookings.filter(b => b.venue.ownerId === currentLoggedInUser.id);
+    const revenue = ownerBookings.reduce((sum, b) => sum + b.finalPrice, 0);
+    const stats = `<ul class="stats-grid">
+        <li class="stat-card"><h3>${revenue}</h3><p>إجمالي الأرباح (ريال)</p></li>
+        <li class="stat-card"><h3>${ownerBookings.length}</h3><p>إجمالي الحجوزات</p></li>
+        <li class="stat-card"><h3>${ownerVenues.length}</h3><p>المنشآت التي تديرها</p></li>
+    </ul>`;
+    return stats;
+}
+
+function renderOwnerVenues() {
+    const ownerVenues = db.publishedVenues.filter(s => s.ownerId === currentLoggedInUser.id);
+    if (ownerVenues.length === 0) return '<p class="text-center">لا توجد منشآت مرتبطة بحسابك. يمكنك إضافة منشأة جديدة من القائمة الجانبية.</p>';
+    
+    let html = '<table class="admin-table"><thead><tr><th>الاسم</th><th>الرياضة</th><th>المدينة</th><th>التواصل</th><th>الإجراءات</th></tr></thead><tbody>';
+    ownerVenues.forEach(s => {
+        html += `<tr>
+            <td>${s.name}</td>
+            <td>${getSportName(s.sport)}</td>
+            <td>${s.city}</td>
+            <td>${s.contact}</td>
+            <td class="actions">
+                <button class="btn btn-danger btn-sm" onclick="deleteOwnerVenue(${s.id})">
+                    <i class="fas fa-trash"></i> حذف
+                </button>
+            </td>
+        </tr>`; 
+    });
+    html += '</tbody></table>'; 
+    return html;
+}
+
+function deleteOwnerVenue(venueId) { 
+    if (!confirm('هل أنت متأكد من حذف هذه المنشأة؟')) return; 
+    const index = db.publishedVenues.findIndex(s => s.id === venueId); 
+    if (index > -1) { 
+        db.publishedVenues.splice(index, 1); 
+        saveData(db); 
+        addNotification(`تم حذف المنشأة.`); 
+        showOwnerSection('venues'); 
+    } 
+}
+
+function renderOwnerBookings() {
+    const ownerBookings = db.allBookings.filter(b => b.venue.ownerId === currentLoggedInUser.id);
+    if (ownerBookings.length === 0) return '<p class="text-center">لا توجد حجوزات على منشآتك حالياً.</p>';
+    
+    let html = '<table class="admin-table"><thead><tr><th>المنشأة</th><th>اللاعب</th><th>التاريخ</th><th>الوقت</th><th>السعر</th><th>حالة الدفع</th></tr></thead><tbody>';
+    ownerBookings.forEach(b => {
+        let statusText = 'مؤكد'; 
+        let statusClass = 'message success';
+        if (b.paymentStatus === 'pending_payment_confirmation') { 
+            statusText = 'في انتظار التأكيد'; 
+            statusClass = 'message error'; 
+        }
+        html += `<tr>
+            <td>${b.venue.name}</td>
+            <td>${b.playerName}</td>
+            <td>${b.date}</td>
+            <td>${b.time}</td>
+            <td>${b.finalPrice} ريال</td>
+            <td><span class="${statusClass}" style="padding: 5px 10px; border-radius: 5px; display:inline-block;">${statusText}</span></td>
+        </tr>`; 
+    });
+    html += '</tbody></table>'; 
+    return html;
+}
+
+function renderOwnerTournaments() {
+    const ownerTourns = db.tournaments.filter(t => t.venue.ownerId === currentLoggedInUser.id);
+    if (ownerTourns.length === 0) return '<p class="text-center">لم تقم بإنشاء أي بطولات بعد. <button class="btn btn-primary" onclick="showPage(\'createTournamentPage\')"><i class="fas fa-plus"></i> إنشاء بطولة جديدة</button></p>';
+    
+    let html = '<table class="admin-table"><thead><tr><th>الاسم</th><th>المنشأة</th><th>التاريخ</th><th>رسوم التسجيل</th><th>المسجلون</th><th>الإجراءات</th></tr></thead><tbody>';
+    ownerTourns.forEach(t => {
+        html += `<tr>
+            <td>${t.name}</td>
+            <td>${t.venue.name}</td>
+            <td>${t.date}</td>
+            <td>${t.fee} ريال</td>
+            <td>${t.registeredPlayers.length}</td>
+            <td class="actions">
+                <button class="btn btn-primary btn-sm" onclick="editTournament(${t.id})">
+                    <i class="fas fa-edit"></i> تعديل
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTournament(${t.id})">
+                    <i class="fas fa-trash"></i> حذف
+                </button>
+            </td>
+        </tr>`; 
+    });
+    html += '</tbody></table><div class="btn-group mt-20"><button class="btn btn-primary" onclick="showPage(\'createTournamentPage\')"><i class="fas fa-plus"></i> إنشاء بطولة جديدة</button></div>'; 
+    return html;
+}
+
+function deleteTournament(tournamentId) { 
+    if (!confirm('هل أنت متأكد من حذف هذه البطولة؟')) return; 
+    const index = db.tournaments.findIndex(t => t.id === tournamentId); 
+    if (index > -1) { 
+        db.tournaments.splice(index, 1); 
+        saveData(db); 
+        addNotification('تم حذف البطولة.'); 
+        showOwnerSection('tournaments'); 
+    } 
+}
+
+function editTournament(tournamentId) { 
+    alert('سيتم تطوير هذه الميزة قريباً'); 
+}
+
+// --- Tournaments ---
+document.getElementById('createTournamentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const venueId = parseInt(document.getElementById('tournamentVenue').value);
+    const newTournament = { 
+        id: Date.now(), 
+        sport: document.getElementById('tournamentSport').value, 
+        venueId, 
+        venue: db.publishedVenues.find(s => s.id === venueId), 
+        name: document.getElementById('tournamentName').value, 
+        date: document.getElementById('tournamentDate').value, 
+        fee: parseInt(document.getElementById('tournamentFee').value), 
+        details: document.getElementById('tournamentDetails').value, 
+        registeredPlayers: [] 
+    };
+    db.tournaments.push(newTournament);
+    saveData(db);
+    addNotification(`بطولة جديدة: ${newTournament.name}`);
+    alert('تم إنشاء البطولة بنجاح!');
+    showOwnerSection('tournaments');
+});
+
+function populateVenueSelect() {
+    const select = document.getElementById('tournamentVenue'); 
+    select.innerHTML = '';
+    const sport = document.getElementById('tournamentSport').value;
+    const ownerVenues = db.publishedVenues.filter(s => s.ownerId === currentLoggedInUser.id && s.sport === sport);
+    ownerVenues.forEach(s => { 
+        const option = document.createElement('option'); 
+        option.value = s.id; 
+        option.textContent = s.name; 
+        select.appendChild(option); 
+    });
+}
+
+function displayAllTournaments() {
+    const container = document.getElementById('tournamentsListContainer'); 
+    container.innerHTML = '';
+    if (db.tournaments.length === 0) { 
+        container.innerHTML = '<p class="text-center">لا توجد بطولات متاحة حالياً.</p>'; 
+        return; 
+    }
+    db.tournaments.forEach(t => {
+        const card = document.createElement('div'); 
+        card.className = 'tournament-card';
+        card.innerHTML = `
+            <h4>${t.name}</h4>
+            <p><strong>الرياضة:</strong> ${getSportName(t.sport)}</p>
+            <p>المنشأة: ${t.venue.name}</p>
+            <p>التاريخ: ${t.date}</p>
+            <p>رسوم التسجيل: ${t.fee} ريال</p>
+            <p>${t.details}</p>
+            <p>المسجلون: ${t.registeredPlayers.length}</p>
+        `;
+        container.appendChild(card);
+    });
+}
+
+// --- Reviews ---
+function getAverageRating(venueId) { 
+    const venueReviews = db.reviews.filter(r => r.venueId === venueId); 
+    if (venueReviews.length === 0) return 0; 
+    const sum = venueReviews.reduce((acc, r) => acc + r.rating, 0); 
+    return sum / venueReviews.length; 
+}
+
+function generateStars(rating) { 
+    let stars = ''; 
+    for (let i = 1; i <= 5; i++) { 
+        stars += `<span class="star ${i <= rating ? 'filled' : ''}">&#9733;</span>`; 
+    } 
+    return stars; 
+}
+
+function renderReviews(venueId) { 
+    const venueReviews = db.reviews.filter(r => r.venueId === venueId); 
+    if (venueReviews.length === 0) return '<p>لا توجد تقييمات بعد.</p>'; 
+    return venueReviews.map(r => `
+        <div class="review-item">
+            <div class="review-header">
+                <strong>${r.playerName}</strong>
+                <div class="rating">${generateStars(r.rating)}</div>
+            </div>
+            <p>${r.comment}</p>
+        </div>
+    `).join(''); 
+}
+
+// --- Initial Load ---
+document.addEventListener('DOMContentLoaded', () => {
+    showPage('mainMenuPage');
+    renderNotifications();
+
+    // Add dummy data only if database is completely empty
+    if (db.approvedOwners.length === 0 && db.publishedVenues.length === 0) {
+        db.approvedOwners.push({
+            id:1, 
+            name:'شبيب الشبيبي', 
+            email:'owner@test.com', 
+            password:'123', 
+            type:'owner'
+        });
+        
+        db.publishedVenues.push(
+            { 
+                id: 101, 
+                ownerId: 1, 
+                ownerName:'شبيب الشبيبي', 
+                sport: 'football', 
+                name:'ملعب الأحلام', 
+                city:'الرياض', 
+                contact:'966-50-123-4567', 
+                location:'شارع الملك فهد', 
+                lat: 24.7136,
+                lng: 46.6753,
+                surface:'عشبي صناعي', 
+                size:'7vs7', 
+                lights:true, 
+                priceOffPeak:100, 
+                pricePeak:150, 
+                details:'ملعب ممتاز', 
+                openingHour:16, 
+                closingHour:23, 
+                slotDuration:60 
+            },
+            { 
+                id: 102, 
+                ownerId: null, 
+                ownerName:'غير معين', 
+                sport: 'volleyball', 
+                name:'شاطئ الأبطال', 
+                city:'جدة', 
+                contact:'966-50-987-6543', 
+                location:'الكورنيش', 
+                lat: 21.5433,
+                lng: 39.1728,
+                surface:'رمل', 
+                size:'مقاس واحد', 
+                lights:true, 
+                priceOffPeak:80, 
+                pricePeak:120, 
+                details:'ملعب شاطئي رائع', 
+                openingHour:17, 
+                closingHour:22, 
+                slotDuration:60 
+            },
+            { 
+                id: 103, 
+                ownerId: null, 
+                ownerName:'غير معين', 
+                sport: 'esports', 
+                name:'مركز الألعاب الملكي', 
+                city:'الرياض', 
+                contact:'968........', 
+                location:'شارع السلطان قابوس', 
+                lat: 24.7247,
+                lng: 46.6803,
+                surface:'كمبيوتر', 
+                size:'غرفة فردية', 
+                lights:true, 
+                priceOffPeak:30, 
+                pricePeak:50, 
+                details:'أحدث الأجهزة ومعدات عالية الجودة', 
+                openingHour:10, 
+                closingHour:24, 
+                slotDuration:60, 
+                equipmentCount: 20, 
+                availableGames: ['FIFA', 'PES', 'Fortnite', 'PUBG'] 
+            }
+        );
+        
+        db.discountCodes.push({
+            id:1, 
+            code:'WELCOME10', 
+            percent:10
+        });
+        
+        addNotification('مرحباً بك في منصة ملعبي!');
+        saveData(db);
+    }
+});
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام إدارة البطولات - ملعبي</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+--primary-color: #3498db;
+--secondary-color: #2ecc71;
+--accent-color: #e74c3c;
+--light-bg: #f0f2f5;
+--card-bg: #ffffff;
+--text-primary: #2c3e50;
+--text-secondary: #7f8c8d;
+--shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+--border-radius: 12px;
+--btn-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+
+body {
+font-family: 'Tajawal', 'Segoe UI', sans-serif;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+min-height: 100vh;
+padding: 20px;
+}
+
+.container {
+max-width: 1400px;
+margin: 0 auto;
+background: var(--card-bg);
+border-radius: var(--border-radius);
+box-shadow: var(--shadow);
+overflow: hidden;
+}
+
+/* Header Styles */
+.header {
+background: linear-gradient(135deg, var(--primary-color), #2980b9);
+color: white;
+padding: 20px 30px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+
+.header h1 {
+font-size: 1.8em;
+display: flex;
+align-items: center;
+gap: 15px;
+}
+
+.header-actions {
+display: flex;
+gap: 15px;
+align-items: center;
+}
+
+.owner-info {
+background: rgba(255, 255, 255, 0.2);
+padding: 8px 15px;
+border-radius: 20px;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.btn {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+padding: 12px 24px;
+font-size: 16px;
+font-weight: 600;
+border: none;
+border-radius: var(--border-radius);
+cursor: pointer;
+text-decoration: none;
+transition: var(--btn-transition);
+min-height: 44px;
+}
+
+.btn-primary {
+background: var(--secondary-color);
+color: white;
+}
+
+.btn-primary:hover {
+background: #27ae60;
+transform: translateY(-2px);
+box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+}
+
+.btn-secondary {
+background: rgba(255, 255, 255, 0.2);
+color: white;
+border: 2px solid white;
+}
+
+.btn-secondary:hover {
+background: white;
+color: var(--primary-color);
+}
+
+.btn-danger {
+background: var(--accent-color);
+color: white;
+}
+
+.btn-danger:hover {
+background: #c0392b;
+}
+
+.btn-sm {
+padding: 8px 16px;
+font-size: 14px;
+min-height: 36px;
+}
+
+/* Tournament Selection */
+.tournament-selector {
+padding: 30px;
+background: var(--light-bg);
+border-bottom: 1px solid #ddd;
+}
+
+.tournament-selector h2 {
+color: var(--text-primary);
+margin-bottom: 20px;
+}
+
+.tournament-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+gap: 20px;
+}
+
+.tournament-card {
+background: white;
+border-radius: var(--border-radius);
+padding: 20px;
+box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+cursor: pointer;
+transition: var(--btn-transition);
+border: 2px solid transparent;
+position: relative;
+}
+
+.tournament-card:hover {
+transform: translateY(-5px);
+box-shadow: var(--shadow);
+border-color: var(--primary-color);
+}
+
+.tournament-card.active {
+border-color: var(--secondary-color);
+background: linear-gradient(135deg, rgba(46, 204, 113, 0.05), rgba(46, 204, 113, 0.1));
+}
+
+.tournament-card h3 {
+color: var(--primary-color);
+margin-bottom: 10px;
+}
+
+.tournament-card p {
+color: var(--text-secondary);
+margin: 5px 0;
+}
+
+.tournament-badge {
+position: absolute;
+top: 10px;
+left: 10px;
+background: var(--secondary-color);
+color: white;
+padding: 5px 10px;
+border-radius: 20px;
+font-size: 0.8em;
+font-weight: bold;
+}
+
+/* Main Content */
+.main-content {
+display: flex;
+min-height: 600px;
+}
+
+/* Sidebar */
+.sidebar {
+width: 280px;
+background: var(--light-bg);
+border-left: 1px solid #ddd;
+padding: 20px;
+}
+
+.sidebar h3 {
+color: var(--text-primary);
+margin-bottom: 20px;
+font-size: 1.2em;
+}
+
+.sidebar-menu {
+list-style: none;
+}
+
+.sidebar-menu li {
+margin-bottom: 10px;
+}
+
+.sidebar-menu a {
+display: flex;
+align-items: center;
+gap: 12px;
+padding: 12px 15px;
+text-decoration: none;
+color: var(--text-primary);
+border-radius: 8px;
+transition: var(--btn-transition);
+}
+
+.sidebar-menu a:hover,
+.sidebar-menu a.active {
+background: var(--primary-color);
+color: white;
+transform: translateX(-5px);
+}
+
+/* Content Area */
+.content {
+flex: 1;
+padding: 30px;
+}
+
+.content h2 {
+color: var(--text-primary);
+margin-bottom: 25px;
+font-size: 1.8em;
+}
+
+/* Tabs */
+.tabs {
+display: flex;
+gap: 10px;
+margin-bottom: 30px;
+border-bottom: 2px solid var(--light-bg);
+}
+
+.tab {
+padding: 12px 20px;
+cursor: pointer;
+border-bottom: 3px solid transparent;
+transition: var(--btn-transition);
+font-weight: 500;
+color: var(--text-secondary);
+}
+
+.tab.active {
+color: var(--primary-color);
+border-bottom-color: var(--primary-color);
+}
+
+.tab:hover {
+background: rgba(52, 152, 219, 0.05);
+}
+
+/* Tab Content */
+.tab-content {
+display: none;
+animation: fadeIn 0.3s ease-in;
+}
+
+.tab-content.active {
+display: block;
+}
+
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(10px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+/* Forms */
+.form-section {
+background: var(--light-bg);
+border-radius: var(--border-radius);
+padding: 25px;
+margin-bottom: 25px;
+}
+
+.form-grid {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+gap: 20px;
+margin-bottom: 20px;
+}
+
+.form-group {
+text-align: right;
+}
+
+.form-group label {
+display: block;
+margin-bottom: 8px;
+font-weight: 500;
+color: var(--text-primary);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+width: 100%;
+padding: 12px;
+border: 1px solid #ddd;
+border-radius: 8px;
+font-size: 16px;
+transition: var(--btn-transition);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+border-color: var(--primary-color);
+outline: none;
+box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Tables */
+.table-container {
+background: white;
+border-radius: var(--border-radius);
+overflow: hidden;
+box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+table {
+width: 100%;
+border-collapse: collapse;
+}
+
+th {
+background: var(--primary-color);
+color: white;
+padding: 15px;
+text-align: center;
+font-weight: 600;
+}
+
+td {
+padding: 15px;
+text-align: center;
+border-bottom: 1px solid #eee;
+}
+
+tr:hover {
+background: var(--light-bg);
+}
+
+/* Team Registration */
+.team-registration {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+gap: 20px;
+}
+
+.team-card {
+background: white;
+border-radius: var(--border-radius);
+padding: 20px;
+box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+transition: var(--btn-transition);
+}
+
+.team-card:hover {
+transform: translateY(-3px);
+box-shadow: var(--shadow);
+}
+
+.team-card h4 {
+color: var(--primary-color);
+margin-bottom: 15px;
+}
+
+.team-info {
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+
+.team-info span {
+display: flex;
+align-items: center;
+gap: 8px;
+color: var(--text-secondary);
+}
+
+/* Standings Table */
+.standings-table {
+background: white;
+border-radius: var(--border-radius);
+overflow: hidden;
+box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.standings-table th {
+background: linear-gradient(135deg, var(--primary-color), #2980b9);
+}
+
+.position-badge {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+width: 35px;
+height: 35px;
+border-radius: 50%;
+font-weight: bold;
+color: white;
+}
+
+.position-1 { background: linear-gradient(135deg, #FFD700, #FFA500); }
+.position-2 { background: linear-gradient(135deg, #C0C0C0, #808080); }
+.position-3 { background: linear-gradient(135deg, #CD7F32, #8B4513); }
+
+.points-editor {
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 10px;
+}
+
+.points-editor input {
+width: 80px;
+padding: 8px;
+border: 1px solid #ddd;
+border-radius: 6px;
+text-align: center;
+font-weight: bold;
+}
+
+.edit-btn {
+background: var(--primary-color);
+color: white;
+border: none;
+padding: 8px 12px;
+border-radius: 6px;
+cursor: pointer;
+transition: var(--btn-transition);
+}
+
+.edit-btn:hover {
+background: #2980b9;
+}
+
+/* Matches */
+.matches-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+gap: 20px;
+}
+
+.match-card {
+background: var(--light-bg);
+border-radius: var(--border-radius);
+padding: 15px;
+border-left: 4px solid var(--primary-color);
+transition: var(--btn-transition);
+}
+
+.match-card.played {
+border-left-color: var(--secondary-color);
+}
+
+.match-card.upcoming {
+border-left-color: var(--accent-color);
+}
+
+.match-teams {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin: 15px 0;
+}
+
+.team-score {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 10px;
+}
+
+.team-name {
+font-weight: 600;
+color: var(--text-primary);
+}
+
+.score-display {
+font-size: 2em;
+font-weight: bold;
+color: var(--primary-color);
+}
+
+.match-info {
+text-align: center;
+color: var(--text-secondary);
+margin-top: 15px;
+}
+
+/* Bracket */
+.bracket-container {
+background: white;
+border-radius: var(--border-radius);
+padding: 30px;
+overflow-x: auto;
+}
+
+.bracket {
+display: flex;
+justify-content: space-around;
+min-width: 800px;
+padding: 20px 0;
+}
+
+.round {
+display: flex;
+flex-direction: column;
+gap: 40px;
+}
+
+.round-title {
+text-align: center;
+font-weight: bold;
+color: var(--primary-color);
+margin-bottom: 20px;
+}
+
+.bracket-match {
+background: var(--light-bg);
+border-radius: 8px;
+padding: 15px;
+width: 200px;
+text-align: center;
+}
+
+.bracket-team {
+padding: 8px;
+margin: 5px 0;
+border-radius: 6px;
+background: white;
+transition: var(--btn-transition);
+}
+
+.bracket-team.winner {
+background: var(--secondary-color);
+color: white;
+font-weight: bold;
+}
+
+/* Messages */
+.message {
+padding: 15px;
+border-radius: 8px;
+margin: 20px 0;
+text-align: center;
+font-weight: 500;
+}
+
+.message.success {
+background: #d4edda;
+color: #155724;
+border: 1px solid #c3e6cb;
+}
+
+.message.error {
+background: #f8d7da;
+color: #721c24;
+border: 1px solid #f5c6cb;
+}
+
+/* Loading */
+.loading {
+display: flex;
+justify-content: center;
+align-items: center;
+min-height: 200px;
+}
+
+.spinner {
+border: 3px solid var(--light-bg);
+border-top: 3px solid var(--primary-color);
+border-radius: 50%;
+width: 40px;
+height: 40px;
+animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+.main-content {
+flex-direction: column;
+}
+
+.sidebar {
+width: 100%;
+border-left: none;
+border-bottom: 1px solid #ddd;
+}
+
+.tournament-grid {
+grid-template-columns: 1fr;
+}
+
+.matches-grid {
+grid-template-columns: 1fr;
+}
+
+.bracket {
+flex-direction: column;
+align-items: center;
+}
+
+.form-grid {
+grid-template-columns: 1fr;
+}
+}
+
+/* Back Button */
+.back-btn {
+position: fixed;
+top: 20px;
+right: 20px;
+background: var(--primary-color);
+color: white;
+border: none;
+border-radius: 50%;
+width: 50px;
+height: 50px;
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+transition: var(--btn-transition);
+box-shadow: var(--shadow);
+z-index: 1000;
+}
+
+.back-btn:hover {
+background: #2980b9;
+transform: scale(1.1);
+}
+
+/* Owner Badge */
+.owner-badge {
+background: var(--secondary-color);
+color: white;
+padding: 3px 8px;
+border-radius: 12px;
+font-size: 0.7em;
+margin-right: 5px;
+}
+</style>
+</head>
+<body>
+<button class="back-btn" onclick="goBack()" title="العودة للنظام الرئيسي">
+<i class="fas fa-arrow-left"></i>
+</button>
+
+<div class="container">
+<!-- Header -->
+<header class="header">
+<h1><i class="fas fa-trophy"></i> نظام إدارة البطولات</h1>
+<div class="header-actions">
+<div class="owner-info" id="ownerInfo">
+<i class="fas fa-user"></i>
+<span>جاري التحميل...</span>
+</div>
+<button class="btn btn-secondary" onclick="exportData()">
+<i class="fas fa-download"></i> تصدير البيانات
+</button>
+</div>
+</header>
+
+<!-- Tournament Selection -->
+<div class="tournament-selector">
+<h2>اختر البطولة</h2>
+<div class="tournament-grid" id="tournamentGrid">
+<!-- Tournament cards will be populated here -->
+</div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent" style="display: none;">
+<!-- Sidebar -->
+<aside class="sidebar">
+<h3>التحكم في البطولة</h3>
+<ul class="sidebar-menu">
+<li><a href="#" class="active" onclick="showTab('overview')"><i class="fas fa-home"></i> نظرة عامة</a></li>
+<li><a href="#" onclick="showTab('registration')"><i class="fas fa-user-plus"></i> تسجيل الفرق</a></li>
+<li><a href="#" onclick="showTab('standings')"><i class="fas fa-list-ol"></i> جدول الترتيب</a></li>
+<li><a href="#" onclick="showTab('matches')"><i class="fas fa-calendar"></i> المباريات</a></li>
+<li><a href="#" onclick="showTab('bracket')"><i class="fas fa-sitemap"></i> الشجرة</a></li>
+<li><a href="#" onclick="showTab('settings')"><i class="fas fa-cog"></i> الإعدادات</a></li>
+</ul>
+</aside>
+
+<!-- Content Area -->
+<main class="content">
+<div id="overviewTab" class="tab-content active">
+<h2>نظرة عامة</h2>
+<div class="form-section">
+<div class="form-grid">
+<div class="team-card">
+<h4><i class="fas fa-users"></i> إجمالي الفرق</h4>
+<div class="team-info">
+<span class="position-badge" style="font-size: 1.5em; width: 60px; height: 60px; line-height: 60px;" id="totalTeams">0</span>
+</div>
+</div>
+<div class="team-card">
+<h4><i class="fas fa-calendar-check"></i> المباريات المكتملة</h4>
+<div class="team-info">
+<span class="position-badge" style="font-size: 1.5em; width: 60px; height: 60px; line-height: 60px; background: var(--secondary-color);" id="completedMatches">0</span>
+</div>
+</div>
+<div class="team-card">
+<h4><i class="fas fa-clock"></i> المباريات المتبقية</h4>
+<div class="team-info">
+<span class="position-badge" style="font-size: 1.5em; width: 60px; height: 60px; line-height: 60px; background: var(--accent-color);" id="remainingMatches">0</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="registrationTab" class="tab-content">
+<h2>تسجيل الفرق</h2>
+<div class="form-section">
+<form id="teamRegistrationForm" onsubmit="registerTeam(event)">
+<div class="form-grid">
+<div class="form-group">
+<label for="teamName">اسم الفريق *</label>
+<input type="text" id="teamName" required>
+</div>
+<div class="form-group">
+<label for="captainName">اسم قائد الفريق *</label>
+<input type="text" id="captainName" required>
+</div>
+<div class="form-group">
+<label for="captainPhone">رقم هاتف قائد الفريق *</label>
+<input type="tel" id="captainPhone" required>
+</div>
+<div class="form-group">
+<label for="teamMembers">أعضاء الفريق (فصل بين الأسماء بفاصلة)</label>
+<textarea id="teamMembers" rows="3" placeholder="العضو الأول، العضو الثاني، العضو الثالث..."></textarea>
+</div>
+</div>
+<button type="submit" class="btn btn-primary">
+<i class="fas fa-user-plus"></i> تسجيل الفريق
+</button>
+</form>
+</div>
+
+<div id="teamsList">
+<h3>الفرق المسجلة</h3>
+<div class="team-registration" id="teamsContainer">
+<!-- Teams will be populated here -->
+</div>
+</div>
+</div>
+
+<div id="standingsTab" class="tab-content">
+<h2>جدول الترتيب</h2>
+<div class="table-container standings-table">
+<table>
+<thead>
+<tr>
+<th>المركز</th>
+<th>الفريق</th>
+<th>قائد الفريق</th>
+<th>المباريات</th>
+<th>فوز</th>
+<th>تعادل</th>
+<th>خسارة</th>
+<th>نقاط</th>
+<th>إجراءات</th>
+</tr>
+</thead>
+<tbody id="standingsTableBody">
+<!-- Standings will be populated here -->
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="matchesTab" class="tab-content">
+<h2>جدول المباريات</h2>
+<div class="form-section">
+<button class="btn btn-primary" onclick="generateMatches()">
+<i class="fas fa-calendar-plus"></i> إنشاء جدول المباريات
+</button>
+<button class="btn btn-secondary" onclick="shuffleTeams()">
+<i class="fas fa-random"></i> عشوائية الفرق
+</button>
+</div>
+<div class="matches-grid" id="matchesContainer">
+<!-- Matches will be populated here -->
+</div>
+</div>
+
+<div id="bracketTab" class="tab-content">
+<h2>شجرة البطولة</h2>
+<div class="bracket-container">
+<div class="bracket" id="bracketContainer">
+<!-- Bracket will be populated here -->
+</div>
+</div>
+</div>
+
+<div id="settingsTab" class="tab-content">
+<h2>إعدادات البطولة</h2>
+<div class="form-section">
+<form id="tournamentSettingsForm" onsubmit="updateTournamentSettings(event)">
+<div class="form-grid">
+<div class="form-group">
+<label for="tournamentName">اسم البطولة</label>
+<input type="text" id="tournamentName" value="بطولة الأبطال">
+</div>
+<div class="form-group">
+<label for="pointsForWin">نقاط الفوز</label>
+<input type="number" id="pointsForWin" value="3" min="0">
+</div>
+<div class="form-group">
+<label for="pointsForDraw">نقاط التعادل</label>
+<input type="number" id="pointsForDraw" value="1" min="0">
+</div>
+<div class="form-group">
+<label for="pointsForLoss">نقاط الخسارة</label>
+<input type="number" id="pointsForLoss" value="0" min="0">
+</div>
+</div>
+<button type="submit" class="btn btn-primary">
+<i class="fas fa-save"></i> حفظ الإعدادات
+</button>
+</form>
+</div>
+</div>
+</main>
+</div>
+</div>
+</div>
+
+<!-- Message Container -->
+<div id="messageContainer"></div>
+
+<script>
+// Data Management
+function loadData() {
+    return {
+        tournaments: JSON.parse(localStorage.getItem('tournaments')) || [],
+        tournamentTeams: JSON.parse(localStorage.getItem('tournamentTeams')) || {},
+        tournamentMatches: JSON.parse(localStorage.getItem('tournamentMatches')) || {},
+        tournamentStandings: JSON.parse(localStorage.getItem('tournamentStandings')) || {}
+    };
+}
+
+function saveData(data) {
+    localStorage.setItem('tournaments', JSON.stringify(data.tournaments));
+    localStorage.setItem('tournamentTeams', JSON.stringify(data.tournamentTeams));
+    localStorage.setItem('tournamentMatches', JSON.stringify(data.tournamentMatches));
+    localStorage.setItem('tournamentStandings', JSON.stringify(data.tournamentStandings));
+}
+
+let data = loadData();
+let currentTournament = null;
+let teams = [];
+let matches = [];
+let standings = [];
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    checkOwnerAccess();
+    initializeTournaments();
+    if (data.tournaments.length > 0) {
+        selectTournament(data.tournaments[0].id);
+    }
+});
+
+// Check if user is logged in as owner
+function checkOwnerAccess() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const ownerId = urlParams.get('ownerId');
+    
+    if (ownerId) {
+        currentOwner = { id: ownerId, name: 'صاحب البطولة' };
+    }
+    
+    if (!currentOwner) {
+        // Try to get from sessionStorage
+        const storedOwner = sessionStorage.getItem('currentOwner');
+        if (storedOwner) {
+            currentOwner = JSON.parse(storedOwner);
+        }
+    }
+    
+    if (currentOwner) {
+        document.getElementById('ownerInfo').innerHTML = `
+            <span class="owner-badge">صاحب بطولة</span>
+            ${currentOwner.name}
+        `;
+    } else {
+        alert('يجب تسجيل الدخول كصاحب بطولة للوصول إلى هذه الصفحة');
+        window.location.href = 'index.html';
+    }
+}
+
+// Tournament Management
+function initializeTournaments() {
+    const grid = document.getElementById('tournamentGrid');
+    grid.innerHTML = '';
+    
+    if (data.tournaments.length === 0) {
+        // Create default tournament
+        const defaultTournament = {
+            id: Date.now(),
+            name: 'بطولة الأبطال',
+            sport: 'football',
+            createdAt: new Date().toISOString(),
+            settings: {
+                pointsForWin: 3,
+                pointsForDraw: 1,
+                pointsForLoss: 0
+            }
+        };
+        data.tournaments.push(defaultTournament);
+        saveData(data);
+    }
+
+    data.tournaments.forEach(tournament => {
+        const card = document.createElement('div');
+        card.className = 'tournament-card';
+        card.onclick = () => selectTournament(tournament.id);
+        card.innerHTML = `
+            <span class="tournament-badge">بطولتي</span>
+            <h3><i class="fas fa-trophy"></i> ${tournament.name}</h3>
+            <p><i class="fas fa-calendar"></i> ${new Date(tournament.createdAt).toLocaleDateString('ar-SA')}</p>
+            <p><i class="fas fa-users"></i> ${getTeamsCount(tournament.id)} فرق</p>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function selectTournament(tournamentId) {
+    currentTournament = data.tournaments.find(t => t.id === tournamentId);
+    if (!currentTournament) return;
+
+    // Update active card
+    document.querySelectorAll('.tournament-card').forEach(card => {
+        card.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+
+    // Show main content
+    document.getElementById('mainContent').style.display = 'flex';
+
+    // Load tournament data
+    loadTournamentData();
+    updateOverview();
+    showTab('overview');
+}
+
+function loadTournamentData() {
+    if (!currentTournament) return;
+
+    teams = data.tournamentTeams[currentTournament.id] || [];
+    matches = data.tournamentMatches[currentTournament.id] || [];
+    standings = data.tournamentStandings[currentTournament.id] || [];
+
+    updateTeamsList();
+    updateStandings();
+    updateMatches();
+    updateBracket();
+    
+    // Load settings
+    document.getElementById('tournamentName').value = currentTournament.name || 'بطولة الأبطال';
+    document.getElementById('pointsForWin').value = currentTournament.settings?.pointsForWin || 3;
+    document.getElementById('pointsForDraw').value = currentTournament.settings?.pointsForDraw || 1;
+    document.getElementById('pointsForLoss').value = currentTournament.settings?.pointsForLoss || 0;
+}
+
+function getTeamsCount(tournamentId) {
+    return data.tournamentTeams[tournamentId] ? data.tournamentTeams[tournamentId].length : 0;
+}
+
+// Tab Management
+function showTab(tabName) {
+    // Update sidebar menu
+    document.querySelectorAll('.sidebar-menu a').forEach(link => {
+        link.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.getElementById(tabName + 'Tab').classList.add('active');
+}
+
+// Team Registration
+function registerTeam(event) {
+    event.preventDefault();
+
+    const team = {
+        id: Date.now(),
+        name: document.getElementById('teamName').value,
+        captain: document.getElementById('captainName').value,
+        phone: document.getElementById('captainPhone').value,
+        members: document.getElementById('teamMembers').value.split(',').map(m => m.trim()).filter(m => m),
+        points: 0,
+        played: 0,
+        won: 0,
+        drawn: 0,
+        lost: 0
+    };
+
+    teams.push(team);
+    updateStandings();
+    saveTournamentData();
+    updateTeamsList();
+
+    // Reset form
+    document.getElementById('teamRegistrationForm').reset();
+    showMessage('تم تسجيل الفريق بنجاح', 'success');
+}
+
+function updateTeamsList() {
+    const container = document.getElementById('teamsContainer');
+    container.innerHTML = '';
+
+    teams.forEach(team => {
+        const card = document.createElement('div');
+        card.className = 'team-card';
+        card.innerHTML = `
+            <h4><i class="fas fa-users"></i> ${team.name}</h4>
+            <div class="team-info">
+                <span><i class="fas fa-user"></i> القائد: ${team.captain}</span>
+                <span><i class="fas fa-phone"></i> ${team.phone}</span>
+                <span><i class="fas fa-users"></i> ${team.members.length + 1} لاعب</span>
+                <span><i class="fas fa-star"></i> النقاط: ${team.points}</span>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="removeTeam(${team.id})">
+                <i class="fas fa-trash"></i> حذف
+            </button>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function removeTeam(teamId) {
+    if (!confirm('هل أنت متأكد من حذف هذا الفريق؟')) return;
+
+    teams = teams.filter(t => t.id !== teamId);
+    matches = matches.filter(m => m.team1Id !== teamId && m.team2Id !== teamId);
+    updateStandings();
+    saveTournamentData();
+    updateTeamsList();
+    updateMatches();
+    showMessage('تم حذف الفريق', 'success');
+}
+
+// Standings Management
+function updateStandings() {
+    standings = teams.map(team => ({
+        ...team,
+        points: team.points || 0,
+        played: team.played || 0,
+        won: team.won || 0,
+        drawn: team.drawn || 0,
+        lost: team.lost || 0
+    }));
+
+    // Sort by points
+    standings.sort((a, b) => b.points - a.points);
+
+    const tbody = document.getElementById('standingsTableBody');
+    tbody.innerHTML = '';
+
+    standings.forEach((team, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><span class="position-badge position-${index + 1}">${index + 1}</span></td>
+            <td><strong>${team.name}</strong></td>
+            <td>${team.captain}</td>
+            <td>${team.played}</td>
+            <td>${team.won}</td>
+            <td>${team.drawn}</td>
+            <td>${team.lost}</td>
+            <td>
+                <div class="points-editor">
+                    <input type="number" id="points-${team.id}" value="${team.points}" min="0" onchange="updateTeamPoints(${team.id}, this.value)">
+                    <button class="edit-btn" onclick="updateTeamPoints(${team.id}, document.getElementById('points-${team.id}').value)">
+                        <i class="fas fa-save"></i>
+                    </button>
+                </div>
+            </td>
+            <td>
+                <button class="btn btn-primary btn-sm" onclick="editTeam(${team.id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateTeamPoints(teamId, newPoints) {
+    const team = teams.find(t => t.id === teamId);
+    if (team) {
+        team.points = parseInt(newPoints);
+        updateStandings();
+        saveTournamentData();
+        showMessage('تم تحديث النقاط', 'success');
+    }
+}
+
+function editTeam(teamId) {
+    const team = teams.find(t => t.id === teamId);
+    if (!team) return;
+
+    const newName = prompt('اسم الفريق:', team.name);
+    if (newName && newName !== team.name) {
+        team.name = newName;
+        updateTeamsList();
+        updateStandings();
+        saveTournamentData();
+        showMessage('تم تحديث اسم الفريق', 'success');
+    }
+}
+
+// Matches Management
+function generateMatches() {
+    if (teams.length < 2) {
+        showMessage('يجب تسجيل فريقين على الأقل', 'error');
+        return;
+    }
+
+    matches = [];
+    const shuffled = [...teams].sort(() => Math.random() - 0.5);
+
+    for (let i = 0; i < shuffled.length - 1; i++) {
+        for (let j = i + 1; j < shuffled.length; j++) {
+            matches.push({
+                id: Date.now() + i + j,
+                team1Id: shuffled[i].id,
+                team2Id: shuffled[j].id,
+                team1Score: null,
+                team2Score: null,
+                played: false,
+                date: null
+            });
+        }
+    }
+
+    saveTournamentData();
+    updateMatches();
+    updateBracket();
+    showMessage('تم إنشاء جدول المباريات', 'success');
+}
+
+function updateMatches() {
+    const container = document.getElementById('matchesContainer');
+    container.innerHTML = '';
+
+    matches.forEach(match => {
+        const team1 = teams.find(t => t.id === match.team1Id);
+        const team2 = teams.find(t => t.id === match.team2Id);
+
+        const card = document.createElement('div');
+        card.className = `match-card ${match.played ? 'played' : 'upcoming'}`;
+
+        card.innerHTML = `
+            <div class="match-teams">
+                <div class="team-score">
+                    <div class="team-name">${team1.name}</div>
+                    <div class="score-display">${match.team1Score !== null ? match.team1Score : '-'}</div>
+                </div>
+                <span style="font-size: 1.5em;">VS</span>
+                <div class="team-score">
+                    <div class="team-name">${team2.name}</div>
+                    <div class="score-display">${match.team2Score !== null ? match.team2Score : '-'}</div>
+                </div>
+            </div>
+            <div class="match-info">
+                ${match.played ? 
+                    `<button class="btn btn-sm" onclick="editMatch(${match.id})"><i class="fas fa-edit"></i> تعديل</button>` :
+                    `<button class="btn btn-primary btn-sm" onclick="recordMatch(${match.id})"><i class="fas fa-check"></i> تسجيل النتيجة</button>`
+                }
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+function recordMatch(matchId) {
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
+
+    const team1 = teams.find(t => t.id === match.team1Id);
+    const team2 = teams.find(t => t.id === match.team2Id);
+
+    const score1 = prompt(`نتيجة ${team1.name}:`);
+    if (score1 === null) return;
+
+    const score2 = prompt(`نتيجة ${team2.name}:`);
+    if (score2 === null) return;
+
+    match.team1Score = parseInt(score1);
+    match.team2Score = parseInt(score2);
+    match.played = true;
+
+    // Update team statistics
+    updateTeamStats(team1, team2, match.team1Score, match.team2Score);
+
+    saveTournamentData();
+    updateMatches();
+    updateStandings();
+    updateBracket();
+    showMessage('تم تسجيل المباراة', 'success');
+}
+
+function updateTeamStats(team1, team2, score1, score2) {
+    team1.played = (team1.played || 0) + 1;
+    team2.played = (team2.played || 0) + 1;
+
+    const settings = currentTournament.settings || { pointsForWin: 3, pointsForDraw: 1, pointsForLoss: 0 };
+
+    if (score1 > score2) {
+        team1.won = (team1.won || 0) + 1;
+        team1.points = (team1.points || 0) + settings.pointsForWin;
+        team2.lost = (team2.lost || 0) + 1;
+        team2.points = (team2.points || 0) + settings.pointsForLoss;
+    } else if (score2 > score1) {
+        team2.won = (team2.won || 0) + 1;
+        team2.points = (team2.points || 0) + settings.pointsForWin;
+        team1.lost = (team1.lost || 0) + 1;
+        team1.points = (team1.points || 0) + settings.pointsForLoss;
+    } else {
+        team1.drawn = (team1.drawn || 0) + 1;
+        team2.drawn = (team2.drawn || 0) + 1;
+        team1.points = (team1.points || 0) + settings.pointsForDraw;
+        team2.points = (team2.points || 0) + settings.pointsForDraw;
+    }
+}
+
+function editMatch(matchId) {
+    recordMatch(matchId);
+}
+
+function shuffleTeams() {
+    if (teams.length < 2) {
+        showMessage('يجب تسجيل فريقين على الأقل', 'error');
+        return;
+    }
+
+    generateMatches();
+    showMessage('تم إعادة ترتيب الفرق عشوائياً', 'success');
+}
+
+// Bracket Management
+function updateBracket() {
+    const container = document.getElementById('bracketContainer');
+    container.innerHTML = '';
+
+    if (matches.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999;">قم بإنشاء المباريات أولاً</p>';
+        return;
+    }
+
+    // Simple bracket visualization
+    const rounds = Math.ceil(Math.log2(teams.length));
+    for (let round = 0; round < rounds; round++) {
+        const roundDiv = document.createElement('div');
+        roundDiv.className = 'round';
+
+        const title = document.createElement('div');
+        title.className = 'round-title';
+        title.textContent = round === 0 ? 'الدور الأول' : round === rounds - 1 ? 'النهائي' : `الدور ${round + 1}`;
+        roundDiv.appendChild(title);
+
+        // Add matches for this round (simplified)
+        const matchCount = Math.max(1, Math.floor(teams.length / Math.pow(2, round + 1)));
+        for (let i = 0; i < matchCount; i++) {
+            const matchDiv = document.createElement('div');
+            matchDiv.className = 'bracket-match';
+            matchDiv.innerHTML = `
+                <div class="bracket-team">فريق ${i * 2 + 1}</div>
+                <div class="bracket-team">فريق ${i * 2 + 2}</div>
+            `;
+            roundDiv.appendChild(matchDiv);
+        }
+
+        container.appendChild(roundDiv);
+    }
+}
+
+// Overview
+function updateOverview() {
+    document.getElementById('totalTeams').textContent = teams.length;
+    document.getElementById('completedMatches').textContent = matches.filter(m => m.played).length;
+    document.getElementById('remainingMatches').textContent = matches.filter(m => !m.played).length;
+}
+
+// Settings
+function updateTournamentSettings(event) {
+    event.preventDefault();
+
+    if (!currentTournament) return;
+
+    currentTournament.name = document.getElementById('tournamentName').value;
+    currentTournament.settings = {
+        pointsForWin: parseInt(document.getElementById('pointsForWin').value),
+        pointsForDraw: parseInt(document.getElementById('pointsForDraw').value),
+        pointsForLoss: parseInt(document.getElementById('pointsForLoss').value)
+    };
+
+    // Update tournaments in data
+    const tournamentIndex = data.tournaments.findIndex(t => t.id === currentTournament.id);
+    if (tournamentIndex !== -1) {
+        data.tournaments[tournamentIndex] = currentTournament;
+        saveData(data);
+    }
+
+    showMessage('تم حفظ الإعدادات', 'success');
+}
+
+// Utility Functions
+function showMessage(text, type) {
+    const container = document.getElementById('messageContainer');
+    const message = document.createElement('div');
+    message.className = `message ${type}`;
+    message.textContent = text;
+    container.appendChild(message);
+
+    setTimeout(() => {
+        message.remove();
+    }, 3000);
+}
+
+function exportData() {
+    if (!currentTournament) return;
+
+    const exportData = {
+        tournament: currentTournament,
+        teams: teams,
+        matches: matches,
+        standings: standings
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentTournament.name}_data.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showMessage('تم تصدير البيانات', 'success');
+}
+
+function saveTournamentData() {
+    if (!currentTournament) return;
+
+    data.tournamentTeams[currentTournament.id] = teams;
+    data.tournamentMatches[currentTournament.id] = matches;
+    data.tournamentStandings[currentTournament.id] = standings;
+    saveData(data);
+}
+
+function goBack() {
+    window.location.href = 'index.html';
+}
+</script>
+</body>
+</html>
